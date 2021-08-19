@@ -69,23 +69,50 @@ class WebRTCClient:
                             reworked once I figure out how to detect dropoffs to simply deny additional requests. 
         :type max_clients   int
         """
-        self.__conn = None
+        self.__conn:websockets.connection = None
         self.__connected:bool  = False
-        self.__pipe = None
-        self.__session = None
-        self.__webrtc_collection:Dict[str, object] = {}
+        self.__pipe:Gst.Pipeline = None
+        self.__session:str = None
+        self.__webrtc_collection:Dict[str, Gst.Element] = {}
+        self.__heartbeat:Dict[str, datetime.datetime] = {}
+        self.__data_channels:Dict[str, GstWebRTC.WebRTCDataChannel] = {}
+        
         self.__stream_id:str = stream_id
         self.__server:str = server 
         self.__pipeline:str = pipeline
-        self.__logger = logging.getLogger('htxi.modules.camera.webrtc')
+        self.__max_clients:int = max_clients
+        self.__client_monitoring_period:int = 10
+        self.__check_client_heartbeat:bool = True
+        self.__missed_heartbeats_allowed = 3
+        self.__force_client_disconnect_duration = 0
+        
+        self.__restart:bool = False
+        self.__eventloop:asyncio.BaseEventLoop = asyncio.get_event_loop()
+        self.__logger:logging.Logger = logging.getLogger('htxi.modules.camera.webrtc')
         self.__logger.setLevel(logging_level)
-        self.__restart = False
-        self.__max_clients = max_clients
-        self.__client_monitoring_period = 60
 
     #
     # region public properties
     #
+    @property
+    def CheckClientHearbeat(self) -> bool:
+        """
+        Gets whether we'll be checking for client heartbeat. This is recommended, but assumes that the client supports this function via responding to a ping 
+        message on the data channel, such as done by vdo.ninja >= 19
+        """
+        return self.__check_client_heartbeat
+
+    @CheckClientHearbeat.setter
+    def CheckClientHearbeat(self, check:bool):
+        """
+        Sets whether we'll be checking for client heartbeat over data channel
+
+        :param check    Whether or not to check heartbeat
+        :type check     bool
+        """
+        self.__check_client_heartbeat = check
+
+
     @property
     def Clients(self) -> int:
         """ 
@@ -110,6 +137,28 @@ class WebRTCClient:
         self.__client_monitoring_period = period
 
     @property
+    def ForceClientDisconnectDuration(self) -> int:
+        """
+        Gets the duration in seconds after which a client is forcibly disconnected. Use this for situations where heartbeats are not possible to use an occasional
+        Disconnect of connected clients. Still active clients will simply reconnect while abandoned clients are removed. Set to 0 to disable forced disconnection. 
+
+        Note that if you disable forced reconnection and do not have a client supporting the heartbeat protocol, the queue of clients might fill up quickly and there 
+        is no way, other than a workload restart, to clear out that queue.... 
+        """
+        return self.__force_client_disconnect_duration
+
+    @ForceClientDisconnectDuration.setter
+    def ForceClientDisconnectDuration(self, val:int):
+        """
+        Sets the duration in seconds after which a client is forcibly disconnected. Use this for situations where heartbeats are not possible to use an occasional
+        Disconnect of connected clients. Still active clients will simply reconnect while abandoned clients are removed. Set to 0 to disable forced disconnection. 
+
+        Note that if you disable forced reconnection and do not have a client supporting the heartbeat protocol, the queue of clients might fill up quickly and there 
+        is no way, other than a workload restart, to clear out that queue.... 
+        """
+        self.__force_client_disconnect_duration = val
+
+    @property
     def MaxClients(self) -> int:
         """
         Gets the maximum number of clients to allow concurrently. The behaior of this is a bit crazy right now. Since I have not
@@ -125,6 +174,20 @@ class WebRTCClient:
         Sets the ceiling for concurrent connections. 
         """
         self.__max_clients = max_clients
+
+    @property 
+    def MissedHeartBeatsAllowed(self) -> int:
+        """
+        Gets the number of hearbeats allowed for clients to miss before being considered abandoned and disconnected.
+        """
+        return self.__missed_heartbeats_allowed
+
+    @MissedHeartBeatsAllowed.setter
+    def MissedHeartBeatsAllowed(self, val:int):
+        """
+        Gets the number of hearbeats allowed for clients to miss before being considered abandoned and disconnected.
+        """
+        self.__missed_heartbeats_allowed = val
 
     @property
     def Pipeline(self) -> str:
@@ -162,7 +225,7 @@ class WebRTCClient:
             self.__stream_id = stream_id
             self.__remove_all_clients()
             self.__restart = True
-            asyncio.create_task(self.connect())
+            self.__eventloop.create_task(self.connect())
             
 
     @property
@@ -183,7 +246,7 @@ class WebRTCClient:
             self.__server = server
             self.__remove_all_clients()
             self.__restart = True
-            asyncio.create_task(self.connect())
+            self.__eventloop.create_task(self.connect())
             
     #
     # endregion
@@ -243,6 +306,10 @@ class WebRTCClient:
         """
         self.__logger.debug(f"{datetime.datetime.now()}: Pipeline status: {self.__pipe.get_state(0)[1].value_nick}")
 
+        if self.__max_clients >0  and len(self.__webrtc_collection) >= self.__max_clients: 
+            self.__logger.warning(f"{datetime.datetime.now()}: Active client threads exceed maximum allowed: {len(self.__webrtc_collection)}/{self.__max_clients}. Ignoring incoming requests until capacity is expanded or clients disconnect.")
+            return
+
         if client_id in self.__webrtc_collection.keys():
             self.__logger.debug(f"{datetime.datetime.now()}: Found existing pipeline segment for client id. Removing....")
             self.__remove_client(client_id)
@@ -289,6 +356,7 @@ class WebRTCClient:
         webrtc.connect('on-ice-candidate', self.__send_ice_candidate_message)
         webrtc.connect('notify::ice-connection-state', self.__on_ice_connection_state)
         webrtc.connect('notify::connection-state', self.__on_connection_state)
+        webrtc.connect('notify::signaling-state', self.__on_signaling_state)
         self.__webrtc_collection[client_id] = webrtc
 
         self.__logger.info(f"{datetime.datetime.now()}: Set new GST branch to playing")    
@@ -312,14 +380,51 @@ class WebRTCClient:
         """
         self.__logger.debug(f"{datetime.datetime.now()}: Checking client connection status") 
         while True:
-            for client_id, webrtcbin in self.__webrtc_collection.items():
+            ids:List[str]=[]
+            sec:int = self.__missed_heartbeats_allowed * self.__client_monitoring_period
+            for client_id in self.__webrtc_collection.keys(): ids.append(client_id)
+                #
+                # need to create a copy of keys since we will possibly modify the collection below....
+                #
+            for client_id in ids:
+                webrtcbin = self.__webrtc_collection[client_id]
+                should_remove_client = False
+                if client_id not in self.__heartbeat.keys(): self.__heartbeat[client_id] = datetime.datetime.now()
+
                 self.__logger.debug(f"{datetime.datetime.now()}: Checking status of {client_id}: {webrtcbin.get_property('connection-state').value_nick}, {webrtcbin.get_property('ice-connection-state').value_nick}, {webrtcbin.get_state(0)[1].value_nick}")
+                if self.__check_client_heartbeat is True and client_id in self.__data_channels.keys():
+                    try:
+                        self.__logger.info(f"{datetime.datetime.now()}: Sending ping to {client_id}.")
+                        channel = self.__data_channels[client_id]
+                        channel.emit('send-string', '{"ping":"' + str(time.time()) + '"}')
+                            #
+                            # Emit ping to peer, which is responded to in the __on_data_channel_message, so there is no
+                            # additional action necessary for this iteration. We will check the heartbeat result on the next iteration 
+                            # as seen below....
+                            #
+                    except Exception as e:
+                        should_remove_client = True
+                        self.__logger.error(f"{datetime.datetime.now()}: Failed to send ping request for client {client_id}: {e}")
+
+                    if self.__heartbeat[client_id] + datetime.timedelta(seconds=sec) < datetime.datetime.now():
+                        self.__logger.warning(f"{datetime.datetime.now()}: Peer {client_id} has failed too many heartbeats. Disconnecting peer from pipeline")
+                        should_remove_client = True
+
+                if self.__force_client_disconnect_duration != 0 and self.__heartbeat[client_id] + datetime.timedelta(seconds=self.__force_client_disconnect_duration) < datetime.datetime.now():
+                    #
+                    # This is to deal with situations where heartbeat cannot be applied (like vod.ninja < 1.19)
+                    #
+                    self.__logger.warning(f"{datetime.datetime.now()}: Peer {client_id} has exceeded force disconnect period. Disconnecting peer from pipeline")
+                    should_remove_client = True
+
+                if should_remove_client is True:
+                    self.__logger.info(f"{datetime.datetime.now()}: Removing client {client_id} due to data channel error or abaondonment")
+                    self.__remove_client(client_id)
+
                 if self.__logger.getEffectiveLevel() == logging.DEBUG:
                     promise = Gst.Promise.new_with_change_func(self.__on_get_stats, client_id, None)
                     webrtcbin.emit("get-stats", None, promise)
-            if len(self.__webrtc_collection) >= self.__max_clients: 
-                self.__logger.warning(f"{datetime.datetime.now()}: Active client threads exceed maximum allowed: {len(self.__webrtc_collection)}/{self.__max_clients}. Clearing out clients....")
-                self.__remove_all_clients()
+
             await asyncio.sleep(self.__client_monitoring_period)   
 
     def __on_get_stats(self, promise:Gst.Promise, client_id:str, __):
@@ -438,7 +543,7 @@ class WebRTCClient:
 
     def __on_connection_state(self, webrtcbin:Gst.Element, prop:object):
         """
-        Handles connection state changes on the WebRtcBin
+        Handles connection state changes on the WebRtcBin. Also sets up a data channel to remote peer for heartbeat
 
         :param webrtcbin    The webrtcbin that detected the connection state change
         :type webrtcbin     Gst.Element (GstWebRTC)
@@ -446,7 +551,91 @@ class WebRTCClient:
         :param prop         The property causin the change. In this case this will be Connection-State
         :type prop          object
         """
-        self.__logger.info(f"{datetime.datetime.now()}: Connection status change: {webrtcbin.get_property(prop.name).value_nick}")
+        val = webrtcbin.get_property(prop.name)
+        uuid = webrtcbin.name
+        self.__logger.info(f"{datetime.datetime.now()}: Connection status change: {val.value_nick}")
+        if val==GstWebRTC.WebRTCPeerConnectionState.CONNECTED:
+            self.__logger.info(f"{datetime.datetime.now()}: Setup data channel for client {uuid}")
+            channel:GstWebRTC.WebRTCDataChannel = webrtcbin.emit('create-data-channel', uuid, None)
+            channel.connect('on-open', self.__on_data_channel_open)
+            channel.connect('on-error', self.__on_data_channel_error)
+            channel.connect('on-close', self.__on_data_channel_close)
+            channel.connect('on-message-string', self.__on_data_channel_message)
+            self.__data_channels[uuid] = channel
+        elif val==GstWebRTC.WebRTCPeerConnectionState.DISCONNECTED or val==GstWebRTC.WebRTCPeerConnectionState.FAILED or val==GstWebRTC.WebRTCPeerConnectionState.CLOSED: 
+            #
+            # this won't work unless Gstreamer / LibNice support it -- which isn't the case in most versions.
+            #
+            self.__remove_client(uuid)
+        else:
+            pass
+
+    def __on_data_channel_error(self, channel:GstWebRTC.WebRTCDataChannel, err:Gst.CoreError):
+        """
+        Handles errors reported in the data channel
+
+        :param channel  The data channel
+        :type channel   GstWebRTC.WebRTCDataChannel
+
+        :param err      The error
+        :type err       Gst.CoreError
+        """
+        self.__logger.error(f"{datetime.datetime.now()}: Error in data channel {channel.label}-{err}")
+
+    def __on_data_channel_open(self, channel:GstWebRTC.WebRTCDataChannel):
+        """
+        Responds to the open event of the data channel
+
+        :param channel  The data channel
+        :type channel   GstWebRTC.WebRTCDataChannel
+        """
+        self.__logger.info(f"{datetime.datetime.now()}: Data channel {channel.label} opened.")
+
+    def __on_data_channel_close(self, channel:GstWebRTC.WebRTCDataChannel):
+        """
+        Responds to the closing of the data channel. This is inidicative of lost connection to the peer and as such, data
+        channel clost will remove the peer from the pipeline. 
+
+        :param channel  The data channel
+        :type channel   GstWebRTC.WebRTCDataChannel
+        """
+        uuid = channel.label
+        self.__logger.info(f"{datetime.datetime.now()}: Closing data channel {uuid}")
+        self.__remove_client(uuid)
+
+    def __on_data_channel_message(self, channel:GstWebRTC.WebRTCDataChannel, msg_raw:str):
+        """
+        Handles messages received on the data channel
+
+        :param channel  The data channel
+        :type channel   GstWebRTC.WebRTCDataChannel
+
+        :param msg_raw  The message received
+        :type msg_raw   str
+
+        https://github.com/steveseguin/raspberry_ninja/blob/advanced_example/nvidia_jetson/server.py
+        """
+        uuid = channel.label
+        try:
+            msg = json.loads(msg_raw)
+        except:
+            self.__logger.error(f"{datetime.datetime.now()}: Unexpected message format in channel - {uuid}")
+            return
+        if 'pong' in msg: 
+            #
+            # Supported in v19 of VDO.Ninja
+            #
+            self.__logger.info(f"{datetime.datetime.now()}: Received pong from peer on channel - {uuid}: {msg['pong']}")
+            if uuid in self.__heartbeat.key():
+                self.__heartbeat[uuid] = datetime.datetime.now()
+        elif 'bye' in msg: 
+            #
+            # supported in v19 of VDO.Ninja
+            #
+            self.__logger.info(f"{datetime.datetime.now()}: Peer on channel - {uuid} hung up")
+            self.__remove_client(uuid)
+        else:
+            self.__logger.debug(f"{datetime.datetime.now()}: Unhandled message on channel {uuid}: {msg}")
 
     def __on_ice_connection_state(self, webrtcbin:Gst.Element, prop:object):
         """
@@ -492,7 +681,13 @@ class WebRTCClient:
             self.__logger.info(f"{datetime.datetime.now()}: GST pipeline message: {mtype}, {message}") 
         return True
 
-    def __on_negotiation_needed(self, webrtcbin):
+    def __on_negotiation_needed(self, webrtcbin:Gst.Element):
+        """
+        Responds to negoation request and creates the offering processes.
+
+        :param webrtcbin    The WebRTCBin element
+        :type webrtcbin     Gst.Element (WebRTCBin)
+        """
         self.__logger.info(f"{datetime.datetime.now()}: Negotiation request. Creating offer....")
         promise = Gst.Promise.new_with_change_func(self.__on_offer_created, webrtcbin, None)
         webrtcbin.emit('create-offer', None, promise)
@@ -525,6 +720,18 @@ class WebRTCClient:
         self.__logger.debug(f"{datetime.datetime.now()}: SDP offer message: {msg}")
         asyncio.new_event_loop().run_until_complete(self.__conn.send(msg))
         self.__logger.info(f"{datetime.datetime.now()}: SDP offer message sent")
+
+    def __on_signaling_state(self, webrtcbin:Gst.Element, prop:object):
+        """
+        Handles singaling state changes on the WebRtcBin
+
+        :param webrtcbin    The webrtcbin that detected the connection state change
+        :type webrtcbin     Gst.Element (GstWebRTC)
+
+        :param prop         The property causin the change. In this case this will be Connection-State
+        :type prop          object
+        """
+        self.__logger.info(f"{datetime.datetime.now()}: Signaling status change: {webrtcbin.get_property(prop.name).value_nick}")
 
     def __send_ice_candidate_message(self, webrtcbin:Gst.Element, mlineindex:int, candidate:str):
         """
@@ -587,8 +794,6 @@ class WebRTCClient:
             if self.__pipe.get_state(0)[1] is Gst.State.PLAYING: break
             time.sleep(1)
             
-
-
     def __remove_client(self, client_id:str):
         """
         Removes a client and dismantels the webrtcbin scaffold associated with the client. 
@@ -596,6 +801,16 @@ class WebRTCClient:
         :param client_id    ID of the peer to remove
         :type client_id     str
         """
+        if client_id in self.__heartbeat.keys(): del self.__heartbeat[client_id]
+        if client_id in self.__data_channels.keys():
+            channel = self.__data_channels[client_id]
+            #channel.disconnect('on-open')
+            #channel.disconnect('on-error')
+            #channel.disconnect('on-close')
+            #channel.disconnect('on-message-string')
+            channel.handler_block_by_func(self.__on_data_channel_close)
+            channel.close()
+            del self.__data_channels[client_id]
         webrtc = self.__pipe.get_by_name(client_id)
         qa = self.__pipe.get_by_name(f"a-queue-{client_id}")
         qv = self.__pipe.get_by_name(f"v-queue-{client_id}")
@@ -605,10 +820,11 @@ class WebRTCClient:
         if atee is not None and qa is not None: atee.unlink(qa)
         if vtee is not None and qv is not None: vtee.unlink(qv)
 
-        self.__pipe.remove(webrtc)
-        webrtc.set_state(Gst.State.NULL)
-        del self.__webrtc_collection[client_id]
-        del webrtc
+        if webrtc is not None: 
+            self.__pipe.remove(webrtc)
+            webrtc.set_state(Gst.State.NULL)
+            if client_id in self.__webrtc_collection.keys(): del self.__webrtc_collection[client_id]
+            del webrtc
         if qa is not None: 
             self.__pipe.remove(qa)
             qa.set_state(Gst.State.NULL)
@@ -617,6 +833,7 @@ class WebRTCClient:
             self.__pipe.remove(qv)
             qv.set_state(Gst.State.NULL)
             del qv
+        
         self.__logger.info(f"{datetime.datetime.now()}: Removed GST branch for client {client_id}")
 
     #
