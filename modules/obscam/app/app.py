@@ -134,19 +134,23 @@ async def main(settings:SimpleNamespace):
         logger.info(f'{datetime.datetime.now()}: Received twin update from IoT Central: {patch}')
         if 'period' in patch: sampleRateInSeconds = patch['period']
         if 'az_logging_level' in patch: logging.getLogger('azure.iot.device').setLevel(patch['az_logging_level'])
-        if 'max_clients' in patch: 
-            settings = SimpleNamespace(** merge(settings.__dict__, {'max_clients': patch['max_clients']}))
-            if webrtc_client is not None: webrtc_client.MaxClients = settings.max_clients
-        if 'monitoring_period' in patch:
-            settings = SimpleNamespace(** merge(settings.__dict__, {'monitoring_period': patch['monitoring_period']}))
-            if webrtc_client is not None: webrtc_client.ClientMonitoringPeriod = settings.monitoring_period
+        if 'max_clients' in patch: settings = SimpleNamespace(** merge(settings.__dict__, {'max_clients': patch['max_clients']}))
+        if 'monitoring_period' in patch: settings = SimpleNamespace(** merge(settings.__dict__, {'monitoring_period': patch['monitoring_period']}))
+        if 'missed_heartbeats_allowed' in patch: settings = SimpleNamespace(** merge(settings.__dict__, {'missed_heartbeats_allowed': patch['missed_heartbeats_allowed']}))
+        if 'check_client_hearbeat' in patch: settings = SimpleNamespace(** merge(settings.__dict__, {'check_client_hearbeat': patch['check_client_hearbeat']}))
+        if 'force_client_disconnect_duration' in patch: settings = SimpleNamespace(** merge(settings.__dict__, {'force_client_disconnect_duration': patch['force_client_disconnect_duration']}))
         if 'settings' in patch: 
             settings = SimpleNamespace(** merge(settings.__dict__, patch['settings']))
             build_gst_pipeline()
-            if webrtc_client is not None:
-                webrtc_client.Pipeline = settings.gst_pipeline
-                webrtc_client.StreamId = settings.stream_id      
-                webrtc_client.Server = settings.server
+        if webrtc_client is not None:
+            webrtc_client.Pipeline = settings.gst_pipeline
+            webrtc_client.StreamId = settings.stream_id      
+            webrtc_client.Server = settings.server
+            webrtc_client.ClientMonitoringPeriod = settings.monitoring_period
+            webrtc_client.MaxClients = settings.max_clients
+            webrtc_client.MissedHeartBeatsAllowed = settings.missed_heartbeats_allowed
+            webrtc_client.CheckClientHearbeat = settings.check_client_hearbeat
+            webrtc_client.ForceClientDisconnectDuration = settings.force_client_disconnect_duration
         if 'logging_level' in patch: 
             logging.root.setLevel(patch['logging_level'])
             logger.setLevel(patch['logging_level'])
@@ -191,6 +195,9 @@ async def main(settings:SimpleNamespace):
         webrtc_client = WebRTCClient(pipeline=settings.gst_pipeline, stream_id=settings.stream_id, server=settings.server)
         webrtc_client.MaxClients = settings.max_clients
         webrtc_client.ClientMonitoringPeriod = settings.monitoring_period
+        webrtc_client.MissedHeartBeatsAllowed = settings.missed_heartbeats_allowed
+        webrtc_client.CheckClientHearbeat = settings.check_client_hearbeat
+        webrtc_client.ForceClientDisconnectDuration = settings.force_client_disconnect_duration
         await webrtc_client.connect()
 
         # start send telemetry and receive commands        
@@ -233,7 +240,10 @@ if __name__ == "__main__":
         'useAZIoT': True if os.environ.get('USE_AZ_IOT', 'FALSE') == 'TRUE' else False,
         'gst_pipeline': '',
         'max_clients': 5,
-        'monitoring_period': 60        
+        'monitoring_period': 30,
+        'missed_heartbeats_allowed': 3,
+        'check_client_hearbeat': True,
+        'force_client_disconnect_duration': 0
     })
 
     parser = argparse.ArgumentParser()

@@ -101,6 +101,9 @@
         "period": 60,
         "max_clients": 5,
         "monitoring_period": 60,
+        "check_client_hearbeat": true,
+        "missed_heartbeats_allowed": 3,
+        "force_client_disconnect_duration": 0,
         "settings": {
           "stream_id": "htxi-robot",
           "server": "wss://apibackup.obs.ninja:443",

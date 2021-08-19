@@ -53,4 +53,10 @@ videotestsrc ! {custom} videoconvert ! queue ! vp8enc deadline=1 ! rtpvp8pay ! q
 ''' # test source with video and audio.
     # video only pipeline
 
+test_video_pipeline = '''
+tee name=videotee ! queue ! fakesink
+v4l2src device=/dev/video0 ! video/x-raw,width=1280,height=720,framerate=10/1 !  videoconvert ! queue ! vp8enc deadline=1 ! rtpvp8pay ! queue ! application/x-rtp,media=video,encoding-name=VP8,payload=97 ! videotee.
+''' # test using usb source.
+    # video only
+
     
