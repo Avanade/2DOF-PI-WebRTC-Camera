@@ -101,7 +101,7 @@
         "period": 60,
         "max_clients": 5,
         "monitoring_period": 60,
-        "check_client_hearbeat": true,
+        "check_client_heartbeat": true,
         "missed_heartbeats_allowed": 3,
         "force_client_disconnect_duration": 0,
         "settings": {

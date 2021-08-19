@@ -137,7 +137,7 @@ async def main(settings:SimpleNamespace):
         if 'max_clients' in patch: settings = SimpleNamespace(** merge(settings.__dict__, {'max_clients': patch['max_clients']}))
         if 'monitoring_period' in patch: settings = SimpleNamespace(** merge(settings.__dict__, {'monitoring_period': patch['monitoring_period']}))
         if 'missed_heartbeats_allowed' in patch: settings = SimpleNamespace(** merge(settings.__dict__, {'missed_heartbeats_allowed': patch['missed_heartbeats_allowed']}))
-        if 'check_client_hearbeat' in patch: settings = SimpleNamespace(** merge(settings.__dict__, {'check_client_hearbeat': patch['check_client_hearbeat']}))
+        if 'check_client_heartbeat' in patch: settings = SimpleNamespace(** merge(settings.__dict__, {'check_client_heartbeat': patch['check_client_heartbeat']}))
         if 'force_client_disconnect_duration' in patch: settings = SimpleNamespace(** merge(settings.__dict__, {'force_client_disconnect_duration': patch['force_client_disconnect_duration']}))
         if 'settings' in patch: 
             settings = SimpleNamespace(** merge(settings.__dict__, patch['settings']))
@@ -149,7 +149,7 @@ async def main(settings:SimpleNamespace):
             webrtc_client.ClientMonitoringPeriod = settings.monitoring_period
             webrtc_client.MaxClients = settings.max_clients
             webrtc_client.MissedHeartBeatsAllowed = settings.missed_heartbeats_allowed
-            webrtc_client.CheckClientHearbeat = settings.check_client_hearbeat
+            webrtc_client.CheckClientHeartbeat = settings.check_client_heartbeat
             webrtc_client.ForceClientDisconnectDuration = settings.force_client_disconnect_duration
         if 'logging_level' in patch: 
             logging.root.setLevel(patch['logging_level'])
@@ -242,7 +242,7 @@ if __name__ == "__main__":
         'max_clients': 5,
         'monitoring_period': 30,
         'missed_heartbeats_allowed': 3,
-        'check_client_hearbeat': True,
+        'check_client_heartbeat': True,
         'force_client_disconnect_duration': 0
     })
 

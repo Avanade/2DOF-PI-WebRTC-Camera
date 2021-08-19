@@ -95,15 +95,15 @@ class WebRTCClient:
     # region public properties
     #
     @property
-    def CheckClientHearbeat(self) -> bool:
+    def CheckClientHeartbeat(self) -> bool:
         """
         Gets whether we'll be checking for client heartbeat. This is recommended, but assumes that the client supports this function via responding to a ping 
         message on the data channel, such as done by vdo.ninja >= 19
         """
         return self.__check_client_heartbeat
 
-    @CheckClientHearbeat.setter
-    def CheckClientHearbeat(self, check:bool):
+    @CheckClientHeartbeat.setter
+    def CheckClientHeartbeat(self, check:bool):
         """
         Sets whether we'll be checking for client heartbeat over data channel
 
