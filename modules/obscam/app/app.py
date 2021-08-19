@@ -113,7 +113,7 @@ async def main(settings:SimpleNamespace):
             try:
                 telemetry = {
                     "connected_clients": webrtc_client.Clients,
-                    "stream_url_t": f"https://backup.obs.ninja/?password=false&view={settings.stream_id}"
+                    "stream_url_t": f"{settings.peer_url_base}/?password=false&view={settings.stream_id}"
                 }
                 payload = json.dumps(telemetry)
                 logger.info(f'{datetime.datetime.now()}: Device telemetry: {payload}')
@@ -159,7 +159,7 @@ async def main(settings:SimpleNamespace):
         # be considered desired, not reports and therefore not show up in Dashboard, etc. 
         #
         del patch['$version']
-        patch['stream_url'] = f'https://backup.obs.ninja/?password=false&view={settings.stream_id}'
+        patch['stream_url'] = f'{settings.peer_url_base}/?password=false&view={settings.stream_id}'
         await module_client.patch_twin_reported_properties(patch)
         logger.info(f'{datetime.datetime.now()}: Desired properties confirmed to reported properties.') 
 

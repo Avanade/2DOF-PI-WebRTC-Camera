@@ -107,6 +107,7 @@
         "settings": {
           "stream_id": "htxi-robot",
           "server": "wss://apibackup.obs.ninja:443",
+          "peer_url_base": "https://backup.obs.ninja",
           "cam_source":"v4l2src",
           "cam_source_params": "device=/dev/video0",
           "custom_pipeline": "videoflip method=vertical-flip !",
