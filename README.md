@@ -51,7 +51,7 @@ python3 app/app.py --help
 python3 app/app.py [options]
 ``` 
 
-The streaming supports multiple clients up to a configurable limit. For vdo.ninja >=19 we leverage data channel based heartbeats for reliable keep-alive detection. To use this, set ```check_client_hearbeat``` in the device twin to true and ```missed_heartbeats_allowed``` to the number of heartbeats a client is allowed to miss before being disconnected (default is 3). If you cannot use heartbeats, configure the ```force_client_disconnect_duration``` to periodically disconnect clients. Live clients will reconnect and abandoned ones dropped off. 
+The streaming supports multiple clients up to a configurable limit. For vdo.ninja >=19 we leverage data channel based heartbeats for reliable keep-alive detection. To use this, set ```check_client_heartbeat``` in the device twin to true and ```missed_heartbeats_allowed``` to the number of heartbeats a client is allowed to miss before being disconnected (default is 3). If you cannot use heartbeats, configure the ```force_client_disconnect_duration``` to periodically disconnect clients. Live clients will reconnect and abandoned ones dropped off. 
 
 ## Servo Controller Container
 

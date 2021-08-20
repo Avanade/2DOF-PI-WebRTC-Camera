@@ -178,14 +178,14 @@ class WebRTCClient:
     @property 
     def MissedHeartBeatsAllowed(self) -> int:
         """
-        Gets the number of hearbeats allowed for clients to miss before being considered abandoned and disconnected.
+        Gets the number of heartbeats allowed for clients to miss before being considered abandoned and disconnected.
         """
         return self.__missed_heartbeats_allowed
 
     @MissedHeartBeatsAllowed.setter
     def MissedHeartBeatsAllowed(self, val:int):
         """
-        Gets the number of hearbeats allowed for clients to miss before being considered abandoned and disconnected.
+        Gets the number of heartbeats allowed for clients to miss before being considered abandoned and disconnected.
         """
         self.__missed_heartbeats_allowed = val
 

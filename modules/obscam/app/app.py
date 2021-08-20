@@ -196,7 +196,7 @@ async def main(settings:SimpleNamespace):
         webrtc_client.MaxClients = settings.max_clients
         webrtc_client.ClientMonitoringPeriod = settings.monitoring_period
         webrtc_client.MissedHeartBeatsAllowed = settings.missed_heartbeats_allowed
-        webrtc_client.CheckClientHearbeat = settings.check_client_hearbeat
+        webrtc_client.CheckClientHeartbeat = settings.check_client_heartbeat
         webrtc_client.ForceClientDisconnectDuration = settings.force_client_disconnect_duration
         await webrtc_client.connect()
 
