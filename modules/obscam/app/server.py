@@ -205,7 +205,7 @@ class WebRTCClient:
             self.__logger.info(f"{datetime.datetime.now()}: Pipeline property has changed... restarting stream.")
             self.__pipeline = pipeline
             self.__remove_all_clients()
-            self.__start_pipeline()
+            self.__eventloop.create_task(self.__start_pipeline())
             
     @property 
     def StreamId(self) -> str:
@@ -280,7 +280,7 @@ class WebRTCClient:
         want to serve clients.
         """
         hasrun = False
-        self.__start_pipeline()
+        await self.__start_pipeline()
 
         while not hasrun or self.__restart:
             hasrun = True
@@ -752,14 +752,17 @@ class WebRTCClient:
         asyncio.new_event_loop().run_until_complete(self.__conn.send(icemsg))
         self.__logger.info(f"{datetime.datetime.now()}: SENT ICE - UUID: {uuid}, {candidate}")
 
-    def __start_pipeline(self):
+    async def __start_pipeline(self):
         """
         Parse and start the gst pipeline. If a pipeline already exists, this pipeline will be torn down firts. 
         """
         self.__logger.info(f"{datetime.datetime.now()}: Pre-roll GST pipeline")
         if self.__pipe is not None: 
             self.__logger.info(f"{datetime.datetime.now()}: Found existing pipeline. Resetting and releasing.")
-            self.__pipe.set_state(Gst.State.NULL)
+            while self.__pipe.get_state() is not Gst.State.NULL:
+                self.__pipe.set_state(Gst.State.NULL)
+                self.__logger.info(f"{datetime.datetime.now()}: Pipeline status: {self.__pipe.get_state(0)[1].value_nick}")
+                await asyncio.sleep(1)
             del self.__pipe
         self.__pipe = Gst.parse_launch(self.__pipeline)
         if self.__pipe.set_state(Gst.State.PLAYING) == Gst.StateChangeReturn.FAILURE:
@@ -769,7 +772,7 @@ class WebRTCClient:
         bus.connect("message", self.__on_message, None)
         self.__logger.info(f"{datetime.datetime.now()}: Pipeline status: {self.__pipe.get_state(0)[1].value_nick}")
         while self.__pipe.get_state(0)[1] is not Gst.State.PLAYING:
-            time.sleep(1)
+            await asyncio.sleep(1)
             self.__logger.info(f"{datetime.datetime.now()}: Pipeline status: {self.__pipe.get_state(0)[1].value_nick}")
 
     def __remove_all_clients(self):
