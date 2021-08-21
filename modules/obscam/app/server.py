@@ -556,7 +556,7 @@ class WebRTCClient:
         self.__logger.info(f"{datetime.datetime.now()}: Connection status change: {val.value_nick}")
         if val==GstWebRTC.WebRTCPeerConnectionState.CONNECTED:
             self.__logger.info(f"{datetime.datetime.now()}: Setup data channel for client {uuid}")
-            channel:GstWebRTC.WebRTCDataChannel = webrtcbin.emit('create-data-channel', uuid, None)
+            channel:GstWebRTC.WebRTCDataChannel = webrtcbin.emit('create-data-channel', 'sendChannel', None)
             channel.connect('on-open', self.__on_data_channel_open)
             channel.connect('on-error', self.__on_data_channel_error)
             channel.connect('on-close', self.__on_data_channel_close)
@@ -580,7 +580,8 @@ class WebRTCClient:
         :param err      The error
         :type err       Gst.CoreError
         """
-        self.__logger.error(f"{datetime.datetime.now()}: Error in data channel {channel.label}-{err}")
+        uuid:str = next(key for key, ch in self.__data_channels.items() if channel == ch)
+        self.__logger.error(f"{datetime.datetime.now()}: Error in data channel {uuid}-{err}")
 
     def __on_data_channel_open(self, channel:GstWebRTC.WebRTCDataChannel):
         """
@@ -589,7 +590,8 @@ class WebRTCClient:
         :param channel  The data channel
         :type channel   GstWebRTC.WebRTCDataChannel
         """
-        self.__logger.info(f"{datetime.datetime.now()}: Data channel {channel.label} opened.")
+        uuid:str = next(key for key, ch in self.__data_channels.items() if channel == ch)
+        self.__logger.info(f"{datetime.datetime.now()}: Data channel {uuid} opened.")
 
     def __on_data_channel_close(self, channel:GstWebRTC.WebRTCDataChannel):
         """
@@ -599,7 +601,7 @@ class WebRTCClient:
         :param channel  The data channel
         :type channel   GstWebRTC.WebRTCDataChannel
         """
-        uuid = channel.label
+        uuid:str = next(key for key, ch in self.__data_channels.items() if channel == ch)
         self.__logger.info(f"{datetime.datetime.now()}: Closing data channel {uuid}")
         self.__remove_client(uuid)
 
@@ -615,7 +617,7 @@ class WebRTCClient:
 
         https://github.com/steveseguin/raspberry_ninja/blob/advanced_example/nvidia_jetson/server.py
         """
-        uuid = channel.label
+        uuid:str = next(key for key, ch in self.__data_channels.items() if channel == ch)
         try:
             msg = json.loads(msg_raw)
         except:
@@ -635,7 +637,7 @@ class WebRTCClient:
             self.__logger.info(f"{datetime.datetime.now()}: Peer on channel - {uuid} hung up")
             self.__remove_client(uuid)
         else:
-            self.__logger.debug(f"{datetime.datetime.now()}: Unhandled message on channel {uuid}: {msg}")
+            self.__logger.info(f"{datetime.datetime.now()}: Unhandled message on channel {uuid}: {msg}")
 
     def __on_ice_connection_state(self, webrtcbin:Gst.Element, prop:object):
         """
