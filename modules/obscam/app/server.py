@@ -628,7 +628,7 @@ class WebRTCClient:
             # Supported in v19 of VDO.Ninja
             #
             self.__logger.info(f"{datetime.datetime.now()}: Received pong from peer on channel - {uuid}: {msg['pong']}")
-            if uuid in self.__heartbeat.key():
+            if uuid in self.__heartbeat.keys():
                 self.__heartbeat[uuid] = datetime.datetime.now()
         elif 'bye' in msg: 
             #
