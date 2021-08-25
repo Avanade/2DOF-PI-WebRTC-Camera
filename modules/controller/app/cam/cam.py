@@ -348,7 +348,8 @@ class Cam(object):
         """ 
         self._controller.add_servo(self._base_servo.channel, self._base_servo.attributes, False)
         self._controller.add_servo(self._elevation_servo.channel, self._elevation_servo.attributes, False)
-        self.reset()
+        if reset: self.reset()
+        if shutoff: self.turn_off()
         self._logger.info("cam with id %s initialized,", self._id)
 
     def pan_to(self, angle: float) -> float:
@@ -412,8 +413,8 @@ class Cam(object):
         self.turn_on()
         self.position  = (self._base_servo.neutral, self._elevation_servo.neutral) 
         self._logger.info("cam reset to (%f, %f)", self._base_servo.neutral, self._elevation_servo.neutral )
-        self.turn_off()
         time.sleep(0.3)
+        self.turn_off()
 
     def turn_off(self):
         """turn_off
