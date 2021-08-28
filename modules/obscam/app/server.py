@@ -43,7 +43,7 @@ from typing import Dict, List
 class WebRTCClient:
     """This class implements a WebRTC gstreamer source"""
 
-    def __init__(self, pipeline:str, stream_id:str, server:str='wss://apibackup.obs.ninja:443', logging_level:int = logging.INFO, max_clients:int=5):
+    def __init__(self, pipeline:str, stream_id:str, server:str='wss://apibackup.obs.ninja:443', stun_server:str='stun://stun4.l.google.com:19302', logging_level:int = logging.INFO, max_clients:int=5):
         """
         Initializes the class. 
 
@@ -58,6 +58,9 @@ class WebRTCClient:
 
         :param server:      The signaling server. To avoid causing issues for production; default server is api.backup.obs.ninja. 
                             Streams can be view at https://backup.obs.ninja/?password=false&view={stream_id} as a result.
+        :type server:       str
+
+        :param stun_server: The STUN server usd for ICE NAT translation
         :type server:       str
 
         :param logging_level The logging level for the class. The logger uses htxi.modules.camera.webrtc. Defaults to logging.INFO
@@ -79,6 +82,7 @@ class WebRTCClient:
         
         self.__stream_id:str = stream_id
         self.__server:str = server 
+        self.__stun_server = stun_server
         self.__pipeline:str = pipeline
         self.__max_clients:int = max_clients
         self.__client_monitoring_period:int = 10
@@ -248,6 +252,24 @@ class WebRTCClient:
             self.__restart = True
             self.__eventloop.create_task(self.connect())
             
+    @property
+    def StunServer(self) -> str:
+        '''
+        Gets the name of the STUN server used for ICE NAT translation
+        '''
+        return self.__stun_server
+    
+    @StunServer.setter
+    def StunServer(self, stun_server:str):
+        '''
+        Sets the STUN server used for ICE NAT translation
+        '''
+        if stun_server != self.__stun_server:
+            self.__logger.info(f"{datetime.datetime.now()}: StunServer property has changed... restarting stream.")
+            self.__stun_server = stun_server
+            self.__remove_all_clients()
+            self.__restart = True
+            self.__eventloop.create_task(self.connect())
     #
     # endregion
     #
@@ -325,6 +347,7 @@ class WebRTCClient:
         qv = None
         webrtc = Gst.ElementFactory.make("webrtcbin", client_id)
         webrtc.set_property('bundle-policy', GstWebRTC.WebRTCBundlePolicy.MAX_BUNDLE) 
+        webrtc.set_property('stun-server', self.StunServer)
 
         if vtee is not None:
             self.__logger.info(f"{datetime.datetime.now()}: Found video-tee to attach new stream")

@@ -55,7 +55,7 @@ audiotestsrc is-live=true wave=red-noise volume=0.2 ! queue ! opusenc ! rtpopusp
 
 rpi_cam_pipeline = '''
 tee name=videotee ! queue ! fakesink
-rpicamsrc bitrate=2000000 ! video/x-h264,profile=constrained-baseline,width={width},height={height},framerate={fps}/1,level=3.0 ! {custom}  queue ! h264parse ! rtph264pay config-interval=-1 !
+rpicamsrc {source_params} ! video/x-h264,profile=constrained-baseline,width={width},height={height},framerate={fps}/1,level=3.0 ! {custom}  queue ! h264parse ! rtph264pay config-interval=-1 !
 queue ! application/x-rtp,media=video,encoding-name=H264,payload=96 ! videotee.
 ''' # raspberry pi camera needed; audio source removed to perserve simplicity.
 
@@ -77,7 +77,7 @@ async def main(settings:SimpleNamespace):
         Build the gst pipeline based ont he settings. 
         """
         if settings.cam_source == 'test': settings.gst_pipeline = test_video_pipeline.format(custom=settings.custom_pipeline)
-        elif settings.cam_source == 'rpi_cam': settings.gst_pipeline = rpi_cam_pipeline.format(custom=settings.custom_pipeline, width=settings.width, height=settings.height, fps=settings.fps)
+        elif settings.cam_source == 'rpi_cam': settings.gst_pipeline = rpi_cam_pipeline.format(source_params=settings.cam_source_params, custom=settings.custom_pipeline, width=settings.width, height=settings.height, fps=settings.fps)
         elif settings.cam_source == 'v4l2src': 
             settings.gst_pipeline = v4l_pipeline.format(caps=settings.caps, source_params=settings.cam_source_params, custom=settings.custom_pipeline)
             settings.gst_pipeline = settings.gst_pipeline.format(width=settings.width, height=settings.height, fps=settings.fps)
@@ -146,6 +146,7 @@ async def main(settings:SimpleNamespace):
             webrtc_client.Pipeline = settings.gst_pipeline
             webrtc_client.StreamId = settings.stream_id      
             webrtc_client.Server = settings.server
+            webrtc_client.StunServer = settings.stun_server
             webrtc_client.ClientMonitoringPeriod = settings.monitoring_period
             webrtc_client.MaxClients = settings.max_clients
             webrtc_client.MissedHeartBeatsAllowed = settings.missed_heartbeats_allowed
@@ -192,7 +193,7 @@ async def main(settings:SimpleNamespace):
             sys.exit(1)
 
         logger.info(f'{datetime.datetime.now()}: Booting up using settings: {settings}')
-        webrtc_client = WebRTCClient(pipeline=settings.gst_pipeline, stream_id=settings.stream_id, server=settings.server)
+        webrtc_client = WebRTCClient(pipeline=settings.gst_pipeline, stream_id=settings.stream_id, server=settings.server, stun_server=settings.stun_server)
         webrtc_client.MaxClients = settings.max_clients
         webrtc_client.ClientMonitoringPeriod = settings.monitoring_period
         webrtc_client.MissedHeartBeatsAllowed = settings.missed_heartbeats_allowed
@@ -230,6 +231,7 @@ if __name__ == "__main__":
     settings = SimpleNamespace(** {
         'stream_id': os.environ.get('STREAM_ID','htxi1234'),
         'server': os.environ.get('SERVER', 'wss://apibackup.obs.ninja:443'),
+        'stun_server': os.environ.get('STUN_SERVER', 'stun://stun4.l.google.com:19302'),
         'cam_source': os.environ.get('CAM_SOURCE', 'test'),
         'cam_source_params': os.environ.get('CAM_SOURCE_PARAMS', 'device=/dev/video0'),
         'custom_pipeline': os.environ.get('CUSTOM_PIPELINE', ''),
@@ -249,6 +251,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--streamid', help='Stream ID of the peer to connect to')
     parser.add_argument('--server', help='Handshake server to use, eg: "wss://backupapi.obs.ninja:443"')
+    parser.add_argument('--stun_server', help='STUN server used for ICE NAT translation, eg: "stun://stun4.l.google.com:19302"')
     parser.add_argument('--cam_source', help='Video source type. Use test|rpi_cam|v4l2src.')
     parser.add_argument('--cam_source_params', help='Optional parameters for cam source. Currently only used for v4l2src to determine video device, i.e. device=/dev/video0')
     parser.add_argument('--custom_pipeline', help='Injection of custom gst pipeline plugins. Supplied plugins are injected between source and ! videoconvert ! to allow manipulation of the video source. If supplied, the value must terminate with a bang (!) Example: videoflip method=vertical-flip !')
@@ -261,6 +264,7 @@ if __name__ == "__main__":
 
     if(args.streamid is not None): settings.stream_id = args.streamid
     if(args.server is not None): settings.server = args.server
+    if(args.stun_server is not None): settings.stun_server = args.stun_server
     if(args.cam_source is not None): settings.cam_source = args.cam_source
     if(args.cam_source_params is not None): settings.cam_source_params = args.cam_source_params
     if(args.custom_pipeline is not None): settings.custom_pipeline = args.custom_pipeline

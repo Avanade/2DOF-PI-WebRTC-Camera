@@ -107,6 +107,7 @@
         "settings": {
           "stream_id": "htxi-robot",
           "server": "wss://apibackup.obs.ninja:443",
+          "stun_server": "stun://stun4.l.google.com:19302",
           "peer_url_base": "https://backup.obs.ninja",
           "cam_source":"v4l2src",
           "cam_source_params": "device=/dev/video0",
