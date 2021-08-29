@@ -25,7 +25,7 @@ import time
 import logging
 import atexit
 import json
-from controller import PCA9685, Servo, ServoAttributes, CustomServoAttributes, MiuzeiSG90Attributes, ES08MAIIAttributes, software_reset
+from controller import PCA9685, Servo, ServoAttributes, CustomServoAttributes, MiuzeiSG90Attributes, ES08MAIIAttributes
 
 # Uncomment to enable debug output.
 logging.basicConfig(level=logging.INFO)
@@ -73,7 +73,7 @@ def shutdown():
     time.sleep(5)
     pwm.set_servo_pulse(chan, attributes.neutral_pulse)
     time.sleep(5)
-    software_reset()
+    PCA9685.software_reset()
 
 # restier shutdown steps
 atexit.register(shutdown)

@@ -31,7 +31,6 @@ from typing import Dict, List
 from azure.iot.device.aio import IoTHubModuleClient
 from azure.iot.device import MethodRequest
 from cam import Cam
-from controller import software_reset
 from command import CommandProcessor
 
 logging.basicConfig(level=logging.DEBUG)
@@ -160,7 +159,7 @@ async def main():
             cam = Cam.get(name)
             cam.reset()
             cam.turn_off()
-        software_reset()
+        Cam.reset()
 
     except Exception as e:
         logger.error(f'{datetime.datetime.now()}: Unexpected error {e}')

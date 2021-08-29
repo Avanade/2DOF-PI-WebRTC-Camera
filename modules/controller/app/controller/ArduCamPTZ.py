@@ -1,6 +1,3 @@
-# Copyright (c) 2016 Adafruit Industries
-# Author: Tony DiCola
-#
 # Copyright (c) 2021 Avanade
 # Author: Thor Schueler
 #
@@ -25,8 +22,10 @@
 # pylint: disable=C0103
 # pylint: disable=R0913
 """
-    This library drives GPIO interaction with the Adafruit Servo HAT and provides
-    some high level functions to interact with servos on the HAT
+    This library implement the interface to the Arducam PTZ controller. The controller
+    has 2 regular servo channels (pan and tilt, assumed to be on channel 0 and 1 respectively) and
+    two micro stepper motors on channels 2 and 3 respectively. We treat the steppers as 
+    continous rotation motors with upper limits. 
 """
 import logging
 import time
@@ -39,37 +38,49 @@ from .servo import Servo
 from .servo_attributes import ServoAttributes
 from .schemas import controller_schema as schema
 
-# Registers/etc:
-PCA9685_ADDRESS = 0x40
-MODE1 = 0x00
-MODE2 = 0x01
-SUBADR1 = 0x02
-SUBADR2 = 0x03
-SUBADR3 = 0x04
-PRESCALE = 0xFE
-LED0_ON_L = 0x06
-LED0_ON_H = 0x07
-LED0_OFF_L = 0x08
-LED0_OFF_H = 0x09
-ALL_LED_ON_L = 0xFA
-ALL_LED_ON_H = 0xFB
-ALL_LED_OFF_L = 0xFC
-ALL_LED_OFF_H = 0xFD
+CHIP_I2C_ADDR = 0x0C
+BUSY_REG_ADDR = 0x04
 
-# Bits:
-RESTART = 0x80
-SLEEP = 0x10
-ALLCALL = 0x01
-INVRT = 0x10
-OUTDRV = 0x04
+OPT_BASE    = 0x1000
+OPT_FOCUS   = OPT_BASE | 0x01
+OPT_ZOOM    = OPT_BASE | 0x02
+OPT_MOTOR_X = OPT_BASE | 0x03
+OPT_MOTOR_Y = OPT_BASE | 0x04
+OPT_IRCUT   = OPT_BASE | 0x05
 
 logger = logging.getLogger('controller')
+opts = {
+    OPT_FOCUS : {
+        "REG_ADDR" : 0x01,
+        "MAX_VALUE": 18000,
+        "RESET_ADDR": 0x01 + 0x0A,
+    },
+    OPT_ZOOM  : {
+        "REG_ADDR" : 0x00,
+        "MAX_VALUE": 18000,
+        "RESET_ADDR": 0x00 + 0x0A,
+    },
+    OPT_MOTOR_X : {
+        "REG_ADDR" : 0x05,
+        "MAX_VALUE": 180,
+        "RESET_ADDR": None,
+    },
+    OPT_MOTOR_Y : {
+        "REG_ADDR" : 0x06,
+        "MAX_VALUE": 180,
+        "RESET_ADDR": None,
+    },
+    OPT_IRCUT : {
+        "REG_ADDR" : 0x0C, 
+        "MAX_VALUE": 0x01,   #0x0001 open, 0x0000 close
+        "RESET_ADDR": None,
+    }
+}
 
-class PCA9685(Controller):
-    """PCA9685 PWM LED/servo controller."""
-
+class ArduCamPTZ(Controller):
+    """ArduCam PTZ controller."""
  
-    def __init__(self, address: int = PCA9685_ADDRESS, i2c = None, 
+    def __init__(self, address: int = CHIP_I2C_ADDR, i2c = None, 
                  frequency: int = 26500000, resolution: int = 4096,
                  servo_frequency: int = 50, **kwargs):
         """__init__
@@ -100,28 +111,17 @@ class PCA9685(Controller):
 
         """
         super().__init__(address, i2c, frequency, resolution, servo_frequency, **kwargs)
-        i2c = PCA9685.__ensureI2C(i2c)
-        self._device = i2c.get_i2c_device(address, **kwargs)
-        self.set_all_pwm(0, 0)
-        self._device.write8(MODE2, OUTDRV)
-        self._device.write8(MODE1, ALLCALL)
-
-        time.sleep(0.005)  # wait for oscillator
-        mode = self._device.readU8(MODE1)
-        mode = mode & ~SLEEP  # wake up (reset sleep)
-        self._device.write8(MODE1, mode)
-        time.sleep(0.005)  # wait for oscillator
-        self.set_pwm_freq(self._servo_frequency)
-        logger.info("Registered PCA9865 controller on address %d" % address)
+        bus = ArduCamPTZ.__ensureI2C(i2c)
+        logger.info("Registered controller on address %d" % address)
 
     @classmethod
     def __ensureI2C(cls, i2c=None):
         """Ensures I2C device interface"""
-        if i2c is None:
-            logger.info('Initializing I2C.')
-            import Adafruit_GPIO.I2C as I2C
-            i2c = I2C
-        return i2c   
+        if bus is None:
+            logger.info('Initializing SMBUS(I2C).')
+            import smbus
+            bus = smbus.SMBus(bus)
+        return bus
 
     @classmethod
     def from_dict(cls, data:Dict[str, object]) -> object:
@@ -143,11 +143,50 @@ class PCA9685(Controller):
     @classmethod
     def software_reset(cls, i2c=None, **kwargs):
         """Sends a software reset (SWRST) command to all servo drivers on the bus."""
-        # Setup I2C interface for device 0x00 to talk to all of them.
-        i2c = cls.__ensureI2C(i2c)
-        d = i2c.get_i2c_device(0x00, **kwargs)
-        d.writeRaw8(0x06)  # SWRST
+        bus = cls.__ensureI2C(i2c)
+        self.waitingForFree()
+        for key in opts.keys():
+            info = self.opts[opt]
+            if info == None or info["RESET_ADDR"] == None: continue
+            self.write(self.address, info["RESET_ADDR"], 0x0000)
+            if flag & 0x01 != 0:
+                self.waitingForFree()
         logger.info('Servo controllers have been reset.')
+
+    def isBusy(self) -> bool:
+        """
+        Determines whether the controller is currently busy executing operations
+        """
+        return self.read(self.CHIP_I2C_ADDR,self.BUSY_REG_ADDR) != 0
+
+
+    def read(self, reg_addr) -> int:
+        value = bus.read_word_data(self.address, reg_addr)
+        value = ((value & 0x00FF)<< 8) | ((value & 0xFF00) >> 8)
+        return value
+
+    def write(self, reg_addr, value:int):
+        if value < 0: value = 0
+        value = ((value & 0x00FF)<< 8) | ((value & 0xFF00) >> 8)
+        return bus.write_word_data(self.address, reg_addr, value)
+    
+
+    
+    
+    def waitingForFree(self, timeout:int=5, period:float=0.01):
+        """
+        Waits until all pending operations currently queued with the controller are complete.
+        """
+        count = 0
+        begin = time.time()
+        while self.isBusy() and count < (timeout / period):
+            count += 1
+            time.sleep(period)
+        if count >= (timeout / period):
+            logger.warning(f"{datetime.datetime.now()}: Timeout waiting for controller to complete work")
+
+
+
 
     def add_servo(self, channel: int, attributes: ServoAttributes = None, move_to_neutral: bool = True):
         """add_servo
@@ -220,21 +259,8 @@ class PCA9685(Controller):
         :type servo_frequency: integer
 
         """
-        prescaleval = float(self._frequency)
-        prescaleval /= float(self._resolution)
-        prescaleval /= float(servo_frequency)
-        prescaleval -= 1
-        logger.info('Setting PWM frequency to %d Hz', servo_frequency)
-        logger.info('Estimated pre-scale: %f', prescaleval)
-        prescale = int(math.floor(prescaleval + 0.5))
-        logger.info('Final pre-scale: %d', prescale)
-        oldmode = self._device.readU8(MODE1)
-        newmode = (oldmode & 0x7F) | 0x10    # sleep
-        self._device.write8(MODE1, newmode)  # go to sleep
-        self._device.write8(PRESCALE, prescale)
-        self._device.write8(MODE1, oldmode)
-        time.sleep(0.005)
-        self._device.write8(MODE1, oldmode | 0x80)
+        logger.error(f"{datetime.datetime.now()}: Settings pwm frequeny not supported for ArduCam PTZ controllers")
+        raise Exception("Settings pwm frequeny not supported for ArduCam PTZ controllers")
 
     def set_off(self, channel: int, tf: bool = True):
         """set_off

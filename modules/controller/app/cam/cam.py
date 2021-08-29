@@ -26,7 +26,7 @@ import logging
 import json
 from typing import Dict, List, Tuple
 from jsonschema import validate, RefResolver, Draft4Validator, ValidationError, SchemaError
-from controller import PCA9685, Servo, ServoAttributes, MiuzeiSG90Attributes, ES08MAIIAttributes, CustomServoAttributes, software_reset
+from controller import Controller, PCA9685, Servo, ServoAttributes, MiuzeiSG90Attributes, ES08MAIIAttributes, CustomServoAttributes
 from .cam_servo import CamServo
 from .schemas import cam_schema, schema_store
 
@@ -45,10 +45,10 @@ class Cam(object):
     elevation_trim = 5.0
     _inc = 0.5                      # servo movement increment in degrees
     _instances = {}
-    _controllers: List[int] = []
+    _controllers: Dict[int, Controller] = {}
 
     def __init__(self, 
-            controller: PCA9685,
+            controller: Controller,
             base_channel: int = 15,
             elevation_channel: int = 12,
             initialize: bool = True,
@@ -58,7 +58,7 @@ class Cam(object):
         method, which ensures that a meArm is not registered twice.
         
         :param controller: The controller to which the arm is attached. 
-        :type controller: PCA9685
+        :type controller: Controller|PCA9685
 
         :param base_channel: The channel for the base rotation servo.
         :type base_channel: int
@@ -101,7 +101,7 @@ class Cam(object):
 
         if initialize: self.initialize()
         Cam._instances[self._id] = self
-        if controller.address not in Cam._controllers: Cam._controllers.append(controller.address)
+        if controller.address not in Cam._controllers.keys(): Cam._controllers[controller.address] = controller
         self._logger.info("cam position controller with id %s created", self._id)
     
     def __setup_defaults(self, base_channel: int, elevation_channel: int):
@@ -211,6 +211,14 @@ class Cam(object):
         return obj
 
     @classmethod
+    def reset(cls):
+        """
+        Resets the I2C Controller
+        """
+        for key in cls._controllers.keys():
+            cls._controllers[key].software_reset() 
+
+    @classmethod
     def shutdown(cls, clear:bool = False):
         """shutdown
         Deletes all cam controllers currently registered and shutsdown environment
@@ -226,7 +234,7 @@ class Cam(object):
             cam.delete(False)
         if clear: 
             cls._instances.clear()
-            software_reset()
+            cls.reset()
 
     @classmethod
     def get(cls, id: str) -> object:
@@ -254,7 +262,7 @@ class Cam(object):
         return list(cls._instances.keys())
 
     @classmethod
-    def get_controllers(cls) -> List[int]:
+    def get_controllers(cls) -> Dict[int, Controller]:
         """get_controllers
         Gets a list of registered controller addresses
 

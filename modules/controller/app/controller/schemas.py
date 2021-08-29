@@ -30,13 +30,14 @@ controller_schema = {
         "controller_attributes": {
             "type" : "object",
             "properties" : {
+                "type": {"type": "string", "enum": ["PCA9865", "Arducam PTZ"]},
                 "address" : {"type" : "number"},
                 "frequency" : {"type" : "number"},
                 "resolution" : {"type": "number"},
                 "servo_frequency": {"type": "number"},
                 "logging_level": {"type": "string", "enum": ["CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG", "NOTSET"]}
             },
-            "required": [ "address", "frequency", "resolution", "servo_frequency" ]
+            "required": [ "type", "address", "frequency", "resolution", "servo_frequency" ]
         },
     },
     "allOf": [
