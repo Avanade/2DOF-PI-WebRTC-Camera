@@ -24,7 +24,7 @@
 import time
 import logging
 import atexit
-from controller import PCA9685, Servo, ServoAttributes, CustomServoAttributes, MiuzeiSG90Attributes, ES08MAIIAttributes, software_reset
+from controller import PCA9685, Servo, ServoAttributes, CustomServoAttributes, MiuzeiSG90Attributes, ES08MAIIAttributes
 
 # Uncomment to enable debug output.
 logging.basicConfig(level=logging.INFO)
@@ -62,9 +62,9 @@ def shutdown():
     pwm.set_servo_angle(base_channel, base_neutral_angle)
     pwm.set_servo_angle(elevation_channel, elevation_neutral_angle)
     time.sleep(5)
-    software_reset()
     pwm.set_off(14, False)
     pwm.set_off(15, False)
+    PCA9685.software_reset()
 
 # restier shutdown steps
 atexit.register(shutdown)

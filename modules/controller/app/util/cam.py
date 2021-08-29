@@ -25,7 +25,7 @@ import logging
 import atexit
 import time
 from cam import Cam, CamServo
-from controller import PCA9685, software_reset
+from controller import PCA9685
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -54,7 +54,7 @@ def shutdown():
         cam = Cam.get(name)
         cam.reset()
         cam.turn_off()
-    software_reset()
+    Cam.reset()
 
 # restier shutdown steps
 atexit.register(shutdown)
