@@ -22,6 +22,7 @@
 from typing import Dict
 from .controller import Controller
 from .PCA9685 import PCA9685
+from .ArduCamPTZ import ArduCamPTZ
 from .schemas import controller_schema
 
 
@@ -43,7 +44,7 @@ class ControllerFactory(object):
         if props["type"] == "PCA9865": instance = PCA9685.from_dict(props)
         elif props["type"] == "Arducam PTZ": instance = ArduCamPTZ.from_dict(props)
         else:
-            raise Exception(f"Unknown controller type: {props["type"]}")
+            raise Exception(f"Unknown controller type: {props['type']}")
 
         return instance
         

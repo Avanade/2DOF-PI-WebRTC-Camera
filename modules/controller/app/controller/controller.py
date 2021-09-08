@@ -27,7 +27,7 @@ import math
 import json
 from typing import Dict
 from jsonschema import validate
-from abs import ABS
+from abc import ABC, abstractmethod, abstractclassmethod, abstractstaticmethod, abstractproperty
 from .servo import Servo
 from .servo_attributes import ServoAttributes
 from .schemas import controller_schema as schema
@@ -38,7 +38,7 @@ class Controller(ABC):
     """Abstract controller class."""
 
     @abstractmethod
-    def __init__(self, address: int = PCA9685_ADDRESS, i2c = None, 
+    def __init__(self, address: int = 0x0, i2c = None, 
                  frequency: int = 26500000, resolution: int = 4096,
                  servo_frequency: int = 50, **kwargs):
         """__init__
