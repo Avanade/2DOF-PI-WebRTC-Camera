@@ -106,6 +106,45 @@ class Servo(object):
         """
         return self._ticks
 
+    def calculate_servo_angle_from_ticks(self, ticks:int) -> float:
+         """calculate_servo_angle_from_ticks
+        Calculate the servo angle from the ticks. 
+
+        :param ticks:   The number of ticks.
+        :type ticks:    int
+
+        :return: The angle that corresponds to the ticks for this servo
+        :rtype: float
+        """      
+        angle = self._attributes.neutral_angle 
+        pulse = self.calculate_servo_pulse_from_ticks(ticks)
+        if pulse == self._attributes.neutral_pulse: 
+            pass
+        elif pulse > self._attributes.neutral_pulse:
+            angle += ((pulse - self._attributes.neutral_pulse) * (self._attributes.max_angle - self._attributes.neutral_angle)) / \
+                (self._attributes.max_pulse - self._attributes.neutral_pulse)
+        elif pulse < self._attributes.neutral_pulse:
+            angle -= ((pulse - self._attributes.neutral_pulse) * (self._attributes.min_angle + self._attributes.neutral_angle)) / \
+                (self._attributes.neutral_pulse - self._attributes.min_pulse)
+        return angle
+
+    def _calulate_servo_pulse_from_ticks(self, ticks:int) -> float:
+        """_calulate_servo_pulse_from_ticks
+        Calculate the servo pulse from the ticks. 
+
+        :param ticks:   The number of ticks.
+        :type ticks:    int
+
+        :return: The pulse that corresponds to the ticks for this servo
+        :rtype: float
+        """
+        pulse_length = 1000000.0                              # 1,000,000 us per second
+        pulse_length /= float(self._controller.frequency)     # signal frequency
+        pulse_length /= float(self._controller.resolution)    # pulse resolution
+        pulse = float(ticks)*pulse_length/1000.0
+        if pulse > self._attributes.max_pulse: pulse = self._attributes.max_pulse
+        if pulse < self._attributes.min_pulse: pulse = self._attributes.min_pulse
+        return pulse
 
     def _calculate_servo_ticks_from_pulse(self, pulse: float) -> int:
         """calculate_servo_ticks_from_pulse
@@ -124,7 +163,7 @@ class Servo(object):
 
         pulse_length = 1000000.0                              # 1,000,000 us per second
         pulse_length /= float(self._controller.frequency)     # signal frequency
-        pulse_length /= float(self._controller.resolution)    # pusle resolution
+        pulse_length /= float(self._controller.resolution)    # pulse resolution
         pulse *= 1000.0
         pulse //= pulse_length
         return int(pulse)
@@ -163,9 +202,11 @@ class Servo(object):
         """
         ticks = self._calculate_servo_ticks_from_pulse(pulse)
         self._logger.debug('Channel %d: %f pulse -> %d ticks', self._channel, pulse, ticks)
-        self._controller.set_pwm(self._channel, 0, ticks)
         self._pulse = pulse
         self._ticks = ticks
+        self._angle = self.calculate_servo_angle_from_ticks(ticks)
+        self._controller.set_pwm(self._channel, 0, ticks)
+
 
     def set_angle(self, angle: float):
         """set_angle
@@ -176,7 +217,8 @@ class Servo(object):
         """
         ticks, pulse = self._calculate_servo_ticks_from_angle(angle)
         self._logger.debug('Channel %d: %f angle -> %d ticks', self._channel, angle, ticks)
-        self._controller.set_pwm(self._channel, 0, ticks)
         self._angle = angle
         self._ticks = ticks
         self._pulse = pulse
+        self._controller.set_pwm(self._channel, 0, ticks)
+

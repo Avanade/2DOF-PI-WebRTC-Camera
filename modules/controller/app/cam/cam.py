@@ -26,7 +26,7 @@ import logging
 import json
 from typing import Dict, List, Tuple
 from jsonschema import validate, RefResolver, Draft4Validator, ValidationError, SchemaError
-from controller import Controller, PCA9685, Servo, ServoAttributes, MiuzeiSG90Attributes, ES08MAIIAttributes, CustomServoAttributes
+from controller import Controller, ControllerFactory, Servo, ServoAttributes, MiuzeiSG90Attributes, ES08MAIIAttributes, CustomServoAttributes
 from .cam_servo import CamServo
 from .schemas import cam_schema, schema_store
 
@@ -58,7 +58,7 @@ class Cam(object):
         method, which ensures that a meArm is not registered twice.
         
         :param controller: The controller to which the arm is attached. 
-        :type controller: Controller|PCA9685
+        :type controller: Controller
 
         :param base_channel: The channel for the base rotation servo.
         :type base_channel: int
@@ -164,7 +164,7 @@ class Cam(object):
         else: d = [data]
         for c in d:
             level = "INFO"
-            controller = PCA9685.from_dict(c['controller'])
+            controller = ControllerFactory.create(c['controller'])
             if 'logging_level' in c['servos']: level = c['servos']['logging_level']
 
             tag = str(c['servos']['base']['channel']).zfill(2) + str(c['servos']['elevation']['channel']).zfill(2)
@@ -179,13 +179,13 @@ class Cam(object):
         return cls._instances
 
     @classmethod
-    def createWithServoParameters(cls, controller: PCA9685,
+    def createWithServoParameters(cls, controller: Controller,
             base_channel: int, elevation_channel: int) -> object:
         """createWithServoParameters
         Creates a cam controller using parameters.
 
         :param controller: The controller to which the cam servos are attached. 
-        :type controller: PCA9685
+        :type controller: Controller
                 
         :param base_channel: The channel for the base servo.
         :type base_channel: int
@@ -211,7 +211,7 @@ class Cam(object):
         return obj
 
     @classmethod
-    def reset(cls):
+    def controller_reset(cls):
         """
         Resets the I2C Controller
         """
@@ -234,7 +234,7 @@ class Cam(object):
             cam.delete(False)
         if clear: 
             cls._instances.clear()
-            cls.reset()
+            cls.controller_reset()
 
     @classmethod
     def get(cls, id: str) -> object:

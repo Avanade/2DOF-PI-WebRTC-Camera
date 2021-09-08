@@ -1,8 +1,7 @@
 {
     "controller": {
-        //"type": "Arducam PTZ",
         "type": "PCA9865",
-        "address": 12,
+        "address": 64,
         "frequency": 26500000,
         "resolution": 4096,
         "servo_frequency": 50,
