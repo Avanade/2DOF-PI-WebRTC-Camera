@@ -131,11 +131,11 @@ class PCA9685(Controller):
         :type data: dictionary
         """
         instance = cls(
-            data['address'],
-            None,
-            data['frequency'],
-            data['resolution'],
-            data['servo_frequency']
+            address=data['address'],
+            i2c=None,
+            frequency=data['frequency'],
+            resolution=data['resolution'],
+            servo_frequency=data['servo_frequency']
         )
         if 'logging_level' in data: logger.setLevel(data['logging_level'])
         return instance

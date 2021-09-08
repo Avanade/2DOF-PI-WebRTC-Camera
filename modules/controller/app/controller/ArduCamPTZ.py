@@ -85,25 +85,25 @@ class ArduCamPTZ(Controller):
                  servo_frequency: int = 50, **kwargs):
         """__init__
 
-        Initialize the PCA9685.
+        Initialize the ArduCamPTZ controller.
 
-        :param address: The hardware address of the board. Generally 0x40 unless there is more
+        :param address: The hardware address of the board. Generally 0x12 unless there is more
                         than one board.
         :type address: integer
 
         :param i2c: I2C driver object. Generally should be None to self obtain.
-        :type i2c: Adafruit_GPIO.I2C
+        :type i2c: smbus.SMBus
 
         :param frequency: The boards oscillating frequency. Will be around 25MHz, but will
-                          slightly vary by board.
+                          slightly vary by board. This is not used for ArduCamPTZ.
         :type frequency: integer
 
         :param resolution: The pulse interval resolution. It is 12 bit. You should not have
-                           to change that.
+                           to change that. This is not used for ArduCamPTZ.
         :type resolution: integer
 
         :param servo_frequency: The pulse frequency for the attached servos. All servos on the
-                                board share the same frequency.
+                                board share the same frequency. This is not used for ArduCamPTZ.
         :type servo_frequency: integer
 
         :param kwargs: additional arguments
@@ -171,20 +171,6 @@ class ArduCamPTZ(Controller):
         return bus.write_word_data(self.address, reg_addr, value)
     
 
-    
-    
-    def waitingForFree(self, timeout:int=5, period:float=0.01):
-        """
-        Waits until all pending operations currently queued with the controller are complete.
-        """
-        count = 0
-        begin = time.time()
-        while self.isBusy() and count < (timeout / period):
-            count += 1
-            time.sleep(period)
-        if count >= (timeout / period):
-            logger.warning(f"{datetime.datetime.now()}: Timeout waiting for controller to complete work")
-
 
 
 
@@ -202,12 +188,11 @@ class ArduCamPTZ(Controller):
         :type move_to_neutral: bool
 
         """
-        if channel < 0 or channel > 15:
-            raise ValueError('Channel must be between 0 and 15')
+        if not in (0x0, 0x1, 0x5, 0x6, 0x0C):
+            raise ValueError('Channel must be between 0, 1, 5, 6 or 12')
 
         if channel in self._servos:
             raise KeyError('There is already a servo on this channel: %d', channel)
-
 
         self._servos[channel] = Servo(self, channel, attributes, move_to_neutral)
 
@@ -215,15 +200,15 @@ class ArduCamPTZ(Controller):
         """set_servo_pulse
         Sets the servo on channel to a certain pulse width.
 
-        :param channel: The channel for which to obtain the servo state. Between 0 and 15.
+        :param channel: The channel for which to obtain the servo state. 0 (Zoom), 1 (Focus), 5 (Pan), 6 (Tilt) or 12 (IrCut).
         :type channel: integer
 
         :param pulse: The pulse length to set.
         :type pulse: float
 
         """
-        if channel < 0 or channel > 15:
-            raise ValueError('Channel must be between 0 and 15')
+        if not in (0x0, 0x1, 0x5, 0x6, 0x0C):
+            raise ValueError('Channel must be between 0, 1, 5, 6 or 12')
 
         if channel not in self._servos:
             raise KeyError('There is no servo registered on channel %d' % channel)
@@ -235,15 +220,15 @@ class ArduCamPTZ(Controller):
         """set_servo_angle
         Sets the servo on channel to a certain angle.
 
-        :param channel: The channel for which to obtain the servo state. Between 0 and 15.
+        :param channel: The channel for which to obtain the servo state. 0 (Zoom), 1 (Focus), 5 (Pan), 6 (Tilt) or 12 (IrCut).
         :type channel: integer
 
         :param angle: The angle to set. The finest resolution is about 0.5 degrees.
         :type pulse: angle
 
         """
-        if channel < 0 or channel > 15:
-            raise ValueError('Channel must be between 0 and 15')
+        if not in (0x0, 0x1, 0x5, 0x6, 0x0C):
+            raise ValueError('Channel must be between 0, 1, 5, 6 or 12')
 
         if channel not in self._servos:
             raise KeyError('There is no servo registered on channel %d' % channel)
@@ -288,7 +273,7 @@ class ArduCamPTZ(Controller):
         """set_pwm
         Sets a single PWM channel pulse.
 
-        :param channel: The channel for which to obtain the servo state. Between 0 and 15.
+        :param channel: The channel for which to obtain the servo state. 0 (Zoom), 1 (Focus), 5 (Pan), 6 (Tilt) or 12 (IrCut).
         :type channel: integer
 
         :param on_ticks: Number of ticks into a period at which to switch the pulse on.
@@ -298,27 +283,19 @@ class ArduCamPTZ(Controller):
         :type pulse: integer
 
         """
-        if channel < 0 or channel > 15:
-            raise ValueError('Channel must be between 0 and 15')
+        if not in (0x0, 0x1, 0x5, 0x6, 0x0C):
+            raise ValueError('Channel must be between 0, 1, 5, 6 or 12')
         if on_ticks < 0:
             raise ValueError('Value for on_ticks must be greater or equaly to zero')
         if on_ticks > off_ticks:
             raise ValueError('Value for on_ticks must be less than or equal to value for off_ticks')
 
-        offmode = self._device.readU8(LED0_OFF_H+4*channel) & 0x10          # see whether channel is permamently set off
-        onmode = self._device.readU8(LED0_ON_H+4*channel) & 0x10            # see whether channel is permanently set on
+        servo = self._servos[channel]
+        angle = servo.angle
 
-        if offmode != 0 and self._warn_on_on_off: 
-            logger.warning(f"Channel {channel} is currently turned off. Setting PMW values but the channel will not actuate until turned on.")
-            self._warn_on_on_off = False
-        if onmode != 0 and self._warn_on_on_off: 
-            logger.warning(f"Channel {channel} is currently turned on. Setting PMW values but the channel will not actuate until turn-on is removed.")
-            self._warn_on_on_off = False
 
-        self._device.write8(LED0_ON_L+4*channel, on_ticks & 0xFF)           # & 0xFF ensures the only the first 8 bits are used to set the register
-        self._device.write8(LED0_ON_H+4*channel, (on_ticks >> 8)|onmode)    # |onmode ensures that the channel set on is not changed
-        self._device.write8(LED0_OFF_L+4*channel, off_ticks & 0xFF)         # & 0xFF ensures the only the first 8 bits are used to set the register
-        self._device.write8(LED0_OFF_H+4*channel, (off_ticks >> 8)|offmode) # |offmode ensures that the channel set off is not changed 
+
+        
 
     def set_all_pwm(self, on_ticks: int, off_ticks: int):
         """set_pwm
@@ -331,11 +308,17 @@ class ArduCamPTZ(Controller):
         :type pulse: integer
 
         """
-        if on_ticks < 0:
-            raise ValueError('Value for on_ticks must be greater or equaly to zero')
-        if on_ticks > off_ticks:
-            raise ValueError('Value for on_ticks must be less than or equal to value for off_ticks')
-        self._device.write8(ALL_LED_ON_L, on_ticks & 0xFF)
-        self._device.write8(ALL_LED_ON_H, on_ticks >> 8)
-        self._device.write8(ALL_LED_OFF_L, off_ticks & 0xFF)
-        self._device.write8(ALL_LED_OFF_H, off_ticks >> 8)
+        logger.error(f"{datetime.datetime.now()}: set_all_pwm() not supported for ArduCam PTZ controllers")
+        raise Exception("set_all_pwm() not supported for ArduCam PTZ controllers")
+
+    def waitingForFree(self, timeout:int=5, period:float=0.01):
+        """
+        Waits until all pending operations currently queued with the controller are complete.
+        """
+        count = 0
+        begin = time.time()
+        while self.isBusy() and count < (timeout / period):
+            count += 1
+            time.sleep(period)
+        if count >= (timeout / period):
+            logger.warning(f"{datetime.datetime.now()}: Timeout waiting for controller to complete work")

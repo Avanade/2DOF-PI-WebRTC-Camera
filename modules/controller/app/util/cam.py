@@ -25,7 +25,7 @@ import logging
 import atexit
 import time
 from cam import Cam, CamServo
-from controller import PCA9685
+from controller import Controller, ControllerFactory
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -42,7 +42,7 @@ print('Press Ctrl-C to quit...')
 #     frequency,
 #     resolution,
 #     servo_frequency)
-#controller = PCA9685.from_json_file('pca9685.json')
+#controller = ControllerFactory.create('pca9685.json')
 
 def shutdown():
     """shutdown
@@ -54,7 +54,7 @@ def shutdown():
         cam = Cam.get(name)
         cam.reset()
         cam.turn_off()
-    Cam.reset()
+    Cam.controller_reset()
 
 # restier shutdown steps
 atexit.register(shutdown)
@@ -62,6 +62,6 @@ atexit.register(shutdown)
 Cam.boot_from_json_file('cam.json')
 for name in Cam.get_names():
     cam = Cam.get(name)
-    print(f'{cam}')
+    print(type(cam._controller))
     cam.test()
     time.sleep(0.5)
