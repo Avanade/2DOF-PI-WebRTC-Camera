@@ -115,12 +115,12 @@ class ArduCamPTZ(Controller):
         logger.info("Registered controller on address %d" % address)
 
     @classmethod
-    def __ensureI2C(cls, i2c=None):
+    def __ensureI2C(cls, bus=None):
         """Ensures I2C device interface"""
         if bus is None:
             logger.info('Initializing SMBUS(I2C).')
             import smbus
-            bus = smbus.SMBus(bus)
+            bus = smbus.SMBus(1)
         return bus
 
     @classmethod
