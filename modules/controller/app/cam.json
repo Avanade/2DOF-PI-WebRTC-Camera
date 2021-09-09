@@ -1,7 +1,7 @@
 {
     "controller": {
-        "type": "PCA9865",
-        "address": 64,
+        "type": "Arducam PTZ",
+        "address": 12,
         "frequency": 26500000,
         "resolution": 4096,
         "servo_frequency": 50,
@@ -11,7 +11,7 @@
         "logging_level": "WARNING",
         "angle_increment": 0.1,
         "base": {
-            "channel": 15,
+            "channel": 6,
             "type": "custom",
             "attributes": {
                 "pulse": {
@@ -20,20 +20,20 @@
                     "neutral": 1.4
                 },
                 "angle": {
-                    "min": -85.0,
-                    "max": 85.0,
-                    "neutral": -0.0
+                    "min": 0.0,
+                    "max": 180.0,
+                    "neutral": 90.0
                 }
             },
             "range": {
-                "neutral": -0.0,
-                "max": 84,
-                "min": -84
+                "neutral": 90.0,
+                "max": 180.0,
+                "min": 0.0
             },
             "trim": 0.0
         },
         "elevation": {
-            "channel": 14,
+            "channel": 5,
             "type": "custom",
             "attributes": {
                 "pulse": {
@@ -42,8 +42,8 @@
                     "neutral": 1.4
                 },
                 "angle": {
-                    "min": -85.0,
-                    "max": 85.0,
+                    "min": -90.0,
+                    "max": 90.0,
                     "neutral": -0.0
                 }
             },

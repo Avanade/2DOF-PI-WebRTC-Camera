@@ -77,7 +77,7 @@ class Servo(object):
         :return: The current servo angle.
         :rtype: float
         """
-        return self._ticks
+        return self._angle
 
     @property
     def channel(self) -> int:
@@ -107,7 +107,7 @@ class Servo(object):
         return self._ticks
 
     def calculate_servo_angle_from_ticks(self, ticks:int) -> float:
-         """calculate_servo_angle_from_ticks
+        """calculate_servo_angle_from_ticks
         Calculate the servo angle from the ticks. 
 
         :param ticks:   The number of ticks.
@@ -116,7 +116,7 @@ class Servo(object):
         :return: The angle that corresponds to the ticks for this servo
         :rtype: float
         """      
-        angle = self._attributes.neutral_angle 
+        angle = self._attributes.neutral_angle
         pulse = self.calculate_servo_pulse_from_ticks(ticks)
         if pulse == self._attributes.neutral_pulse: 
             pass
@@ -158,8 +158,9 @@ class Servo(object):
         """
 
         if str(pulse) < str(self._attributes.min_pulse) or str(pulse) > str(self._attributes.max_pulse):
-            raise Exception('Pulse %f out of range. Must be between %f and %f' %
-                            (pulse, self._attributes.min_pulse, self._attributes.max_pulse))
+            self._logger.warning(f"Pulse {pulse} out of range. Must be between {self._attributes.min_pulse} and {self._attributes.max_pulse}")
+            if pulse < self._attributes.min_pulse: pulse = self._attributes.min_pulse
+            if pulse > self._attributes.max_pulse: pulse = self._attributes.max_pulse
 
         pulse_length = 1000000.0                              # 1,000,000 us per second
         pulse_length /= float(self._controller.frequency)     # signal frequency
@@ -180,8 +181,9 @@ class Servo(object):
         """
 
         if angle < self._attributes.min_angle or angle > self._attributes.max_angle:
-            raise Exception('Angle %f out of range. Must be between %f and %f' %
-                            (angle, self._attributes.min_angle, self._attributes.max_angle))
+            self._logger.warning(f"Angle {angle} out of range. Must be between {self._attributes.min_angle} and {self._attributes.max_angle}")
+            if angle < self._attributes.min_angle: angle = self._attributes.min_angle
+            if angle > self._attributes.max_angle: angle = self._attributes.max_angle
 
         pulse = self._attributes.neutral_pulse
         if angle > self._attributes.neutral_angle:
