@@ -111,17 +111,17 @@ class ArduCamPTZ(Controller):
 
         """
         super().__init__(address, i2c, frequency, resolution, servo_frequency, **kwargs)
-        bus = ArduCamPTZ.__ensureI2C(i2c)
+        self.__i2c = ArduCamPTZ.__ensureI2C(i2c)
         logger.info("Registered controller on address %d" % address)
 
     @classmethod
-    def __ensureI2C(cls, bus=None):
+    def __ensureI2C(cls, i2c=None):
         """Ensures I2C device interface"""
-        if bus is None:
+        if i2c is None:
             logger.info('Initializing SMBUS(I2C).')
             import smbus
-            bus = smbus.SMBus(1)
-        return bus
+            i2c = smbus.SMBus(1)
+        return i2c
 
     @classmethod
     def from_dict(cls, data:Dict[str, object]) -> object:
@@ -160,18 +160,15 @@ class ArduCamPTZ(Controller):
         return self.read(self.CHIP_I2C_ADDR,self.BUSY_REG_ADDR) != 0
 
 
-    def read(self, reg_addr) -> int:
-        value = bus.read_word_data(self.address, reg_addr)
+    def read(self,chip_addr,reg_addr):
+        value = self.__i2c.read_word_data(chip_addr,reg_addr)
         value = ((value & 0x00FF)<< 8) | ((value & 0xFF00) >> 8)
         return value
-
-    def write(self, reg_addr, value:int):
-        if value < 0: value = 0
+    def write(self,chip_addr,reg_addr,value):
+        if value < 0:
+            value = 0
         value = ((value & 0x00FF)<< 8) | ((value & 0xFF00) >> 8)
-        return bus.write_word_data(self.address, reg_addr, value)
-    
-
-
+        return self.__i2c.write_word_data(chip_addr,reg_addr,value)
 
 
     def add_servo(self, channel: int, attributes: ServoAttributes = None, move_to_neutral: bool = True):
@@ -188,7 +185,7 @@ class ArduCamPTZ(Controller):
         :type move_to_neutral: bool
 
         """
-        if not in (0x0, 0x1, 0x5, 0x6, 0x0C):
+        if channel not in (0x0, 0x1, 0x5, 0x6, 0x0C):
             raise ValueError('Channel must be between 0, 1, 5, 6 or 12')
 
         if channel in self._servos:
@@ -207,7 +204,7 @@ class ArduCamPTZ(Controller):
         :type pulse: float
 
         """
-        if not in (0x0, 0x1, 0x5, 0x6, 0x0C):
+        if channel not in (0x0, 0x1, 0x5, 0x6, 0x0C):
             raise ValueError('Channel must be between 0, 1, 5, 6 or 12')
 
         if channel not in self._servos:
@@ -227,7 +224,7 @@ class ArduCamPTZ(Controller):
         :type pulse: angle
 
         """
-        if not in (0x0, 0x1, 0x5, 0x6, 0x0C):
+        if channel not in (0x0, 0x1, 0x5, 0x6, 0x0C):
             raise ValueError('Channel must be between 0, 1, 5, 6 or 12')
 
         if channel not in self._servos:
@@ -259,15 +256,7 @@ class ArduCamPTZ(Controller):
         :type tf: bool
         
         """
-        oldmode = self._device.readU8(LED0_OFF_H+4*channel)
-        if tf == 1:
-            mode = oldmode | 0x10
-            logger.info('Setting servo on channel %d to OFF', channel)
-        else:
-            mode = oldmode & 0xEF
-            logger.info('Setting servo on channel %d to PWM', channel)
-        self._device.write8(LED0_OFF_H+4*channel, mode)
-        self._warn_on_on_off = True
+        pass
 
     def set_pwm(self, channel: int, on_ticks: int, off_ticks: int):
         """set_pwm
@@ -283,17 +272,18 @@ class ArduCamPTZ(Controller):
         :type pulse: integer
 
         """
-        if not in (0x0, 0x1, 0x5, 0x6, 0x0C):
+        if channel not in (0x0, 0x1, 0x5, 0x6, 0x0C):
             raise ValueError('Channel must be between 0, 1, 5, 6 or 12')
         if on_ticks < 0:
             raise ValueError('Value for on_ticks must be greater or equaly to zero')
         if on_ticks > off_ticks:
             raise ValueError('Value for on_ticks must be less than or equal to value for off_ticks')
 
-        servo = self._servos[channel]
-        angle = servo.angle
-
-
+        if channel == 0x6:
+            servo = self._servos[channel]
+            angle = int(servo.angle)
+            logger.warning(f"{channel}, {on_ticks}, {off_ticks}, {angle}")
+            self.write(self._address, channel, angle)
 
         
 
