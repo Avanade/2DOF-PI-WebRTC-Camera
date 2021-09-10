@@ -73,7 +73,7 @@ def shutdown():
     time.sleep(5)
     pwm.set_servo_pulse(chan, attributes.neutral_pulse)
     time.sleep(5)
-    PCA9685.software_reset()
+    pwm.software_reset()
 
 # restier shutdown steps
 atexit.register(shutdown)

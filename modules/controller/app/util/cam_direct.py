@@ -64,7 +64,7 @@ def shutdown():
     time.sleep(5)
     pwm.set_off(14, False)
     pwm.set_off(15, False)
-    PCA9685.software_reset()
+    pwm.software_reset()
 
 # restier shutdown steps
 atexit.register(shutdown)

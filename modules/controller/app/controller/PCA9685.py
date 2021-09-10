@@ -140,15 +140,6 @@ class PCA9685(Controller):
         if 'logging_level' in data: logger.setLevel(data['logging_level'])
         return instance
 
-    @classmethod
-    def software_reset(cls, i2c=None, **kwargs):
-        """Sends a software reset (SWRST) command to all servo drivers on the bus."""
-        # Setup I2C interface for device 0x00 to talk to all of them.
-        i2c = cls.__ensureI2C(i2c)
-        d = i2c.get_i2c_device(0x00, **kwargs)
-        d.writeRaw8(0x06)  # SWRST
-        logger.info('Servo controllers have been reset.')
-
     def add_servo(self, channel: int, attributes: ServoAttributes = None, move_to_neutral: bool = True):
         """add_servo
         Adds a servo definition for a given channel.
@@ -313,3 +304,11 @@ class PCA9685(Controller):
         self._device.write8(ALL_LED_ON_H, on_ticks >> 8)
         self._device.write8(ALL_LED_OFF_L, off_ticks & 0xFF)
         self._device.write8(ALL_LED_OFF_H, off_ticks >> 8)
+
+    def software_reset(self, i2c=None, **kwargs):
+        """Sends a software reset (SWRST) command to all servo drivers on the bus."""
+        # Setup I2C interface for device 0x00 to talk to all of them.
+        i2c = PCA9685.__ensureI2C(i2c)
+        d = i2c.get_i2c_device(0x00, **kwargs)
+        d.writeRaw8(0x06)  # SWRST
+        logger.info('Servo controllers have been reset.')

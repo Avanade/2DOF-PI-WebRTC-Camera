@@ -3,13 +3,13 @@
         "type": "Arducam PTZ",
         "address": 12,
         "frequency": 26500000,
-        "resolution": 4096,
+        "resolution": 4096000000,
         "servo_frequency": 50,
         "logging_level": "WARNING"
     },
     "servos": {
         "logging_level": "WARNING",
-        "angle_increment": 0.1,
+        "angle_increment": 1,
         "base": {
             "channel": 6,
             "type": "custom",
@@ -42,15 +42,15 @@
                     "neutral": 1.4
                 },
                 "angle": {
-                    "min": -90.0,
-                    "max": 90.0,
-                    "neutral": -0.0
+                    "min": 0.0,
+                    "max": 180.0,
+                    "neutral": 90.0
                 }
             },
             "range": {
-                "neutral": 68,
-                "max": 84.9,
-                "min": 25
+                "neutral": 150,
+                "max": 160,
+                "min": 85
             },
             "trim": 0.0
         }

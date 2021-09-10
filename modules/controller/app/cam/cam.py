@@ -121,7 +121,7 @@ class Cam(object):
                                 Cam.elevation_neutral_angle, Cam.elevation_min_angle, Cam.elevation_max_angle, Cam.elevation_trim)
         self._base_angle = self._base_servo.neutral + self._base_servo.trim
         self._elevation_angle = self._elevation_servo.neutral + self._elevation_servo.trim
-    
+
     @classmethod
     def boot_from_json_file(cls, json_file:str) -> Dict[str,object]:
         """boot_from_json_file
@@ -358,6 +358,8 @@ class Cam(object):
         self._controller.add_servo(self._elevation_servo.channel, self._elevation_servo.attributes, False)
         if reset: self.reset()
         if shutoff: self.turn_off()
+        self._base_angle = self._base_servo.neutral + self._base_servo.trim
+        self._elevation_angle = self._elevation_servo.neutral + self._elevation_servo.trim
         self._logger.info("cam with id %s initialized,", self._id)
 
     def pan_to(self, angle: float) -> float:
