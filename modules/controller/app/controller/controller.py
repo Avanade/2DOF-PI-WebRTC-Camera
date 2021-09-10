@@ -114,12 +114,6 @@ class Controller(ABC):
         pass
         return None
 
-    @classmethod
-    @abstractmethod
-    def software_reset(cls, i2c=None, **kwargs):
-        """Sends a software reset (SWRST) command to all servo drivers on the bus."""
-        pass
-
     @property
     def address(self) -> int:
         """Gets the board address.
@@ -148,7 +142,7 @@ class Controller(ABC):
         return self._resolution
 
     @property
-    def servos(self) -> Dict[str, object]:
+    def servos(self) -> Dict[int, object]:
         """Gets the collection of servos on the board.
 
         :return: a list of servos registerd on the board.
@@ -275,4 +269,9 @@ class Controller(ABC):
         :type pulse: integer
 
         """
+        pass
+
+    @abstractmethod
+    def software_reset(self, i2c=None, **kwargs):
+        """Sends a software reset (SWRST) command to all servo drivers on the bus."""
         pass

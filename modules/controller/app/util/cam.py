@@ -62,6 +62,13 @@ atexit.register(shutdown)
 Cam.boot_from_json_file('cam.json')
 for name in Cam.get_names():
     cam = Cam.get(name)
-    print(type(cam._controller))
     cam.test()
-    time.sleep(0.5)
+    #c = cam._controller
+    #s = c.get_servo(6)
+    #a = 0
+    #while a<181:
+    #    t, p = s._calculate_servo_ticks_from_angle(a)
+    #    p1 = s._calculate_servo_angle_from_ticks(t)
+    #    logger.info(f"{a} -> {p} -> {t} -> {p1}")
+    #    a += 1
+    #time.sleep(0.5)

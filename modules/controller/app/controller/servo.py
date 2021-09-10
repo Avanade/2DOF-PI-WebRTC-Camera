@@ -106,7 +106,7 @@ class Servo(object):
         """
         return self._ticks
 
-    def calculate_servo_angle_from_ticks(self, ticks:int) -> float:
+    def _calculate_servo_angle_from_ticks(self, ticks:int) -> float:
         """calculate_servo_angle_from_ticks
         Calculate the servo angle from the ticks. 
 
@@ -117,19 +117,19 @@ class Servo(object):
         :rtype: float
         """      
         angle = self._attributes.neutral_angle
-        pulse = self.calculate_servo_pulse_from_ticks(ticks)
+        pulse = self._calculate_servo_pulse_from_ticks(ticks)
         if pulse == self._attributes.neutral_pulse: 
             pass
         elif pulse > self._attributes.neutral_pulse:
             angle += ((pulse - self._attributes.neutral_pulse) * (self._attributes.max_angle - self._attributes.neutral_angle)) / \
                 (self._attributes.max_pulse - self._attributes.neutral_pulse)
         elif pulse < self._attributes.neutral_pulse:
-            angle -= ((pulse - self._attributes.neutral_pulse) * (self._attributes.min_angle + self._attributes.neutral_angle)) / \
+            angle += ((self._attributes.neutral_pulse - pulse) * (self._attributes.min_angle - self._attributes.neutral_angle)) / \
                 (self._attributes.neutral_pulse - self._attributes.min_pulse)
         return angle
 
-    def _calulate_servo_pulse_from_ticks(self, ticks:int) -> float:
-        """_calulate_servo_pulse_from_ticks
+    def _calculate_servo_pulse_from_ticks(self, ticks:int) -> float:
+        """_calculate_servo_pulse_from_ticks
         Calculate the servo pulse from the ticks. 
 
         :param ticks:   The number of ticks.
@@ -186,12 +186,13 @@ class Servo(object):
             if angle > self._attributes.max_angle: angle = self._attributes.max_angle
 
         pulse = self._attributes.neutral_pulse
-        if angle > self._attributes.neutral_angle:
+        if angle == self._attributes.neutral_angle: pass
+        elif angle > self._attributes.neutral_angle:
             pulse += ((angle - self._attributes.neutral_angle) * (self._attributes.max_pulse - self._attributes.neutral_pulse)) / \
                 (self._attributes.max_angle - self._attributes.neutral_angle)
         elif angle < self._attributes.neutral_angle:
-            pulse -= ((angle + self._attributes.neutral_angle) * (self._attributes.neutral_pulse - self._attributes.min_pulse)) / \
-                (self._attributes.min_angle + self._attributes.neutral_angle)
+            pulse -= ((angle - self._attributes.neutral_angle) * (self._attributes.neutral_pulse - self._attributes.min_pulse)) / \
+                (self._attributes.min_angle - self._attributes.neutral_angle)
         self._logger.debug('Angle %f -> pulse %f', angle, pulse)
         return self._calculate_servo_ticks_from_pulse(pulse), pulse
 
@@ -206,7 +207,7 @@ class Servo(object):
         self._logger.debug('Channel %d: %f pulse -> %d ticks', self._channel, pulse, ticks)
         self._pulse = pulse
         self._ticks = ticks
-        self._angle = self.calculate_servo_angle_from_ticks(ticks)
+        self._angle = self._calculate_servo_angle_from_ticks(ticks)
         self._controller.set_pwm(self._channel, 0, ticks)
 
 

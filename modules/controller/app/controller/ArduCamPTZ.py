@@ -140,37 +140,6 @@ class ArduCamPTZ(Controller):
         if 'logging_level' in data: logger.setLevel(data['logging_level'])
         return instance
 
-    @classmethod
-    def software_reset(cls, i2c=None, **kwargs):
-        """Sends a software reset (SWRST) command to all servo drivers on the bus."""
-        bus = cls.__ensureI2C(i2c)
-        self.waitingForFree()
-        for key in opts.keys():
-            info = self.opts[opt]
-            if info == None or info["RESET_ADDR"] == None: continue
-            self.write(self.address, info["RESET_ADDR"], 0x0000)
-            if flag & 0x01 != 0:
-                self.waitingForFree()
-        logger.info('Servo controllers have been reset.')
-
-    def isBusy(self) -> bool:
-        """
-        Determines whether the controller is currently busy executing operations
-        """
-        return self.read(self.CHIP_I2C_ADDR,self.BUSY_REG_ADDR) != 0
-
-
-    def read(self,chip_addr,reg_addr):
-        value = self.__i2c.read_word_data(chip_addr,reg_addr)
-        value = ((value & 0x00FF)<< 8) | ((value & 0xFF00) >> 8)
-        return value
-    def write(self,chip_addr,reg_addr,value):
-        if value < 0:
-            value = 0
-        value = ((value & 0x00FF)<< 8) | ((value & 0xFF00) >> 8)
-        return self.__i2c.write_word_data(chip_addr,reg_addr,value)
-
-
     def add_servo(self, channel: int, attributes: ServoAttributes = None, move_to_neutral: bool = True):
         """add_servo
         Adds a servo definition for a given channel.
@@ -192,6 +161,7 @@ class ArduCamPTZ(Controller):
             raise KeyError('There is already a servo on this channel: %d', channel)
 
         self._servos[channel] = Servo(self, channel, attributes, move_to_neutral)
+        self._servos[channel].set_angle(float(self.__read(channel)))
 
     def set_servo_pulse(self, channel: int, pulse: float):
         """set_servo_pulse
@@ -279,13 +249,12 @@ class ArduCamPTZ(Controller):
         if on_ticks > off_ticks:
             raise ValueError('Value for on_ticks must be less than or equal to value for off_ticks')
 
-        if channel == 0x6:
+        if channel in (0x6, 0x5):
             servo = self._servos[channel]
             angle = int(servo.angle)
-            logger.warning(f"{channel}, {on_ticks}, {off_ticks}, {angle}")
-            self.write(self._address, channel, angle)
-
-        
+            #logger.warning(f"{channel}, {on_ticks}, {off_ticks}, {angle}")
+            self.__write(channel, angle)
+            time.sleep(0.005)
 
     def set_all_pwm(self, on_ticks: int, off_ticks: int):
         """set_pwm
@@ -301,14 +270,49 @@ class ArduCamPTZ(Controller):
         logger.error(f"{datetime.datetime.now()}: set_all_pwm() not supported for ArduCam PTZ controllers")
         raise Exception("set_all_pwm() not supported for ArduCam PTZ controllers")
 
-    def waitingForFree(self, timeout:int=5, period:float=0.01):
+    def software_reset(self, i2c=None, **kwargs):
+        """Sends a software reset (SWRST) command to all servo drivers on the bus."""
+        bus = ArduCamPTZ.__ensureI2C(i2c)
+        for key in opts.keys():
+            info = opts[key]
+            if info == None or info["RESET_ADDR"] == None: continue
+            self.__waitingForFree()
+            self.__write(info["RESET_ADDR"], 0x0000)
+        self.__waitingForFree()
+        logger.info('Servo controllers have been reset.')
+
+    def __isBusy(self) -> bool:
+        """Determines whether the controller is currently busy executing operations"""
+        return self.__read(BUSY_REG_ADDR) != 0
+
+    def __waitingForFree(self, timeout:int=5, period:float=0.01):
         """
         Waits until all pending operations currently queued with the controller are complete.
         """
         count = 0
         begin = time.time()
-        while self.isBusy() and count < (timeout / period):
+        while self.__isBusy() and count < (timeout / period):
             count += 1
             time.sleep(period)
         if count >= (timeout / period):
             logger.warning(f"{datetime.datetime.now()}: Timeout waiting for controller to complete work")
+
+    def __read(self, reg_addr:int) -> int:
+        """Reads the controller's registry value on a specified address"""
+        value = self.__i2c.read_word_data(self._address,reg_addr)
+        value = ((value & 0x00FF)<< 8) | ((value & 0xFF00) >> 8)
+        return value
+
+    def __write(self,reg_addr: int, value:int):
+        """
+        Sets a registry value in the controller
+
+        :param reg_addr:    Address of the register to write
+        :type reg_addr:     int
+
+        :param value:       Value to write
+        :type value:        int
+        """
+        if value < 0: value = 0
+        value = ((value & 0x00FF)<< 8) | ((value & 0xFF00) >> 8)
+        return self.__i2c.write_word_data(self._address,reg_addr,value)
