@@ -1,4 +1,5 @@
 azure-iot-device~=2.7.0
 jsonschema
 jsonmerge
+smbus
 Adafruit_GPIO
