@@ -626,7 +626,7 @@ class WebRTCClient:
         """
         uuid:str = next(key for key, ch in self.__data_channels.items() if channel == ch)
         self.__logger.info(f"{datetime.datetime.now()}: Closing data channel {uuid}")
-        self.__remove_client(uuid)
+        self.__eventloop.call_soon_threadsafe(self.__remove_client, uuid)
 
     def __on_data_channel_message(self, channel:GstWebRTC.WebRTCDataChannel, msg_raw:str):
         """
@@ -658,7 +658,7 @@ class WebRTCClient:
             # supported in v19 of VDO.Ninja
             #
             self.__logger.info(f"{datetime.datetime.now()}: Peer on channel - {uuid} hung up")
-            self.__remove_client(uuid)
+            self.__eventloop.call_soon_threadsafe(self.__remove_client, uuid)
         else:
             self.__logger.info(f"{datetime.datetime.now()}: Unhandled message on channel {uuid}: {msg}")
 
@@ -832,10 +832,6 @@ class WebRTCClient:
         if client_id in self.__heartbeat.keys(): del self.__heartbeat[client_id]
         if client_id in self.__data_channels.keys():
             channel = self.__data_channels[client_id]
-            #channel.disconnect('on-open')
-            #channel.disconnect('on-error')
-            #channel.disconnect('on-close')
-            #channel.disconnect('on-message-string')
             channel.handler_block_by_func(self.__on_data_channel_close)
             channel.close()
             del self.__data_channels[client_id]
