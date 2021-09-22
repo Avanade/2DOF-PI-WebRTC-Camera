@@ -53,6 +53,72 @@
                 "min": 85
             },
             "trim": 0.0
+        },
+        "focus": {
+            "channel": 1,
+            "type": "custom",
+            "attributes": {
+                "pulse": {
+                    "min": 0,
+                    "max": 9000,
+                    "neutral": 18000
+                },
+                "angle": {
+                    "min": 0,
+                    "max": 18000,
+                    "neutral": 9000
+                }
+            },
+            "range": {
+                "neutral": 9000,
+                "max": 18000,
+                "min": 0
+            },
+            "trim": 0.0
+        },
+        "zoom": {
+            "channel": 0,
+            "type": "custom",
+            "attributes": {
+                "pulse": {
+                    "min": 0,
+                    "max": 9000,
+                    "neutral": 18000
+                },
+                "angle": {
+                    "min": 0,
+                    "max": 18000,
+                    "neutral": 9000
+                }
+            },
+            "range": {
+                "neutral": 9000,
+                "max": 18000,
+                "min": 0
+            },
+            "trim": 0.0
+        },
+        "ircut": {
+            "channel": 12,
+            "type": "custom",
+            "attributes": {
+                "pulse": {
+                    "min": 0,
+                    "max": 1,
+                    "neutral": 0
+                },
+                "angle": {
+                    "min": 0,
+                    "max": 1,
+                    "neutral": 0
+                }
+            },
+            "range": {
+                "neutral": 0,
+                "max": 1,
+                "min": 0
+            },
+            "trim": 0.0
         }
     }
 }

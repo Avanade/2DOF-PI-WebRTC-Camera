@@ -58,6 +58,9 @@ cam_schema = {
                 "angle-increment": {"type": "number"},
                 "base": { "$ref": "http://theRealThor.com/obscam.cam-servo.schema.json/#/definitions/cam_servo"},
                 "elevation": { "$ref": "http://theRealThor.com/obscam.cam-servo.schema.json/#/definitions/cam_servo"}
+                "focus": { "$ref": "http://theRealThor.com/obscam.cam-servo.schema.json/#/definitions/cam_servo"},
+                "zoom": { "$ref": "http://theRealThor.com/obscam.cam-servo.schema.json/#/definitions/cam_servo"},
+                "ircut": { "$ref": "http://theRealThor.com/obscam.cam-servo.schema.json/#/definitions/cam_servo"}
             },
             "required": ["angle-increment", "base", "elevation"]
         },
