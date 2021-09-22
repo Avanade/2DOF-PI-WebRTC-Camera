@@ -96,7 +96,12 @@ class Cam(object):
         
         self._controller = controller
         self._turnedOff = False
-
+        self._focus_servo = None
+        self._zoom_servo = None
+        self._ircut_servo = None
+        self._zoom = -1
+        self._focus = -1
+        self._ircut = -1
         self.__setup_defaults(base_channel, elevation_channel)
 
         if initialize: self.initialize()
@@ -172,7 +177,12 @@ class Cam(object):
             if id in Cam._instances: Cam._instances[id].delete(False)
             obj = cls(controller, c['servos']['base']['channel'], c['servos']['elevation']['channel'], False, level)
             obj._base_servo = CamServo.from_dict(c['servos']['base'])
-            obj._elevation_servo = CamServo.from_dict(c['servos']['elevation']) 
+            obj._elevation_servo = CamServo.from_dict(c['servos']['elevation'])
+
+            if 'zoom' in c['servos']: obj._zoom_servo = CamServo.from_dict(c['servos']['zoom'])
+            if 'focus' in c['servos']: obj._focus_servo = CamServo.from_dict(c['servos']['focus'])
+            if 'ircut' in c['servos']: obj._ircut_servo = CamServo.from_dict(c['servos']['ircut'])
+
             obj._inc = c['servos']['angle_increment']
             obj.initialize(False, False)
             cls._instances[id] = obj
@@ -291,7 +301,7 @@ class Cam(object):
 
     @property
     def position(self) -> Tuple[float, float]:
-        """Gets the current position of the gripper
+        """Gets the current position of the camera
 
         :return: The current position
         :rtype: 2 dimensional tuple of base and elevation angles.
@@ -300,6 +310,11 @@ class Cam(object):
 
     @position.setter
     def position(self, position:Tuple[float, float]):
+        """Sets the position of the camera
+        
+        :param position:    Tuple containing position (pan, tilt)
+        :type position:     Tuple(float, float)
+        """
         x = position[0]
         y = position[1]
         if x + self._base_servo.trim > self._base_servo.max: x = self._base_servo.max - self._base_servo.trim     
@@ -325,6 +340,28 @@ class Cam(object):
            
             self._controller.set_servo_angle(self._base_servo.channel, self._base_angle + self._base_servo.trim)
             self._controller.set_servo_angle(self._elevation_servo.channel, self._elevation_angle + self._elevation_servo.trim)
+
+    @property
+    def focus(self) -> float:
+        """Gets the focus of the camera
+
+        :return: The current focus
+        :rtype: float
+        """
+        return self._focus
+
+    @focus.setter
+    def focus(self, val:float):
+        """Sets the focus of the camera
+        
+        :param val: The focus to set.
+        :type val: float
+        """
+        if self._focus_servo is None:
+            self._logger.warning(f"Attempt to set focus when no focus servo is present.")
+        else:
+            self._focus = val
+            self._controller.set_servo_angle(self._focus_servo.channel, self._focus + self._focus_servo.trim)
 
     @property 
     def boundaries(self) -> Tuple[Tuple[float, float, float, float], Tuple[float, float, float, float]]:
@@ -356,10 +393,13 @@ class Cam(object):
         """ 
         self._controller.add_servo(self._base_servo.channel, self._base_servo.attributes, False)
         self._controller.add_servo(self._elevation_servo.channel, self._elevation_servo.attributes, False)
-        if reset: self.reset()
-        if shutoff: self.turn_off()
         self._base_angle = self._base_servo.neutral + self._base_servo.trim
         self._elevation_angle = self._elevation_servo.neutral + self._elevation_servo.trim
+        if self._zoom_servo: self._zoom = self._zoom_servo.neutral + self._zoom_servo.trim
+        if self._focus_servo: self._focus = self._focus_servo.neutral + self._focus_servo.trim
+        if self._ircut_servo: self._ircut = self._ircut_servo.neutral + self._ircut_servo.trim
+        if reset: self.reset()
+        if shutoff: self.turn_off()
         self._logger.info("cam with id %s initialized,", self._id)
 
     def pan_to(self, angle: float) -> float:

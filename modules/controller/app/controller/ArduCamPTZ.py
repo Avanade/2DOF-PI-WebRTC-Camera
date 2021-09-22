@@ -252,9 +252,16 @@ class ArduCamPTZ(Controller):
         if channel in (0x6, 0x5):
             servo = self._servos[channel]
             angle = int(servo.angle)
-            #logger.warning(f"{channel}, {on_ticks}, {off_ticks}, {angle}")
             self.__write(channel, angle)
-            time.sleep(0.005)
+            self.__waitingForFree()
+
+        if channel in (0x0, 0x1):
+            self.__write(channel, off_ticks-on_ticks)
+            self.__waitingForFree()
+
+        if channel == 0x0C:
+            self.__write(channel, 0x0 if (off_ticks - on_ticks)==0 else 0x1)
+            self.__waitingForFree()
 
     def set_all_pwm(self, on_ticks: int, off_ticks: int):
         """set_pwm
