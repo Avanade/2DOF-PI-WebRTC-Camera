@@ -105,7 +105,7 @@ class Cam(object):
         self._ircut_servo = None
         self._zoom = -1
         self._focus = -1
-        self._ircut = false
+        self._ircut = False
         self.__setup_defaults(base_channel, elevation_channel)
 
         if initialize: self.initialize()
@@ -481,11 +481,16 @@ class Cam(object):
         """ 
         self._controller.add_servo(self._base_servo.channel, self._base_servo.attributes, False)
         self._controller.add_servo(self._elevation_servo.channel, self._elevation_servo.attributes, False)
+        if self._zoom_servo is not None: self._controller.add_servo(self._zoom_servo.channel, self._zoom_servo.attributes, False)
+        if self._focus_servo is not None: self._controller.add_servo(self._focus_servo.channel, self._focus_servo.attributes, False)      
+        if self._ircut_servo is not None: self._controller.add_servo(self._ircut_servo.channel, self._ircut_servo.attributes, False)
+
         self._base_angle = self._base_servo.neutral + self._base_servo.trim
         self._elevation_angle = self._elevation_servo.neutral + self._elevation_servo.trim
         if self._zoom_servo: self._zoom = self._zoom_servo.neutral + self._zoom_servo.trim
         if self._focus_servo: self._focus = self._focus_servo.neutral + self._focus_servo.trim
         if self._ircut_servo: self._ircut = self._ircut_servo.neutral + self._ircut_servo.trim
+        
         if reset: self.reset()
         if shutoff: self.turn_off()
         self._logger.info("cam with id %s initialized,", self._id)
