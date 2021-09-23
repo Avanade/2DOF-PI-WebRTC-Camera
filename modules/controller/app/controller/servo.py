@@ -157,7 +157,7 @@ class Servo(object):
         :rtype: int
         """
 
-        if str(pulse) < str(self._attributes.min_pulse) or str(pulse) > str(self._attributes.max_pulse):
+        if pulse < self._attributes.min_pulse or pulse > self._attributes.max_pulse:
             self._logger.warning(f"Pulse {pulse} out of range. Must be between {self._attributes.min_pulse} and {self._attributes.max_pulse}")
             if pulse < self._attributes.min_pulse: pulse = self._attributes.min_pulse
             if pulse > self._attributes.max_pulse: pulse = self._attributes.max_pulse

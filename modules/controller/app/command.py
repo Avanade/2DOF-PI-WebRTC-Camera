@@ -42,7 +42,10 @@ class CommandProcessor:
             'PanTo': CommandProcessor.pan_or_tilt,
             'TiltBy': CommandProcessor.pan_or_tilt,
             'TiltTo': CommandProcessor.pan_or_tilt,
-            'Nudge': CommandProcessor.nudge
+            'Nudge': CommandProcessor.nudge,
+            'Focus': CommandProcessor.focus,
+            'Zoom': CommandProcessor.zoom,
+            'IRCut': CommandProcessor.ircut
         }
 
     @staticmethod
@@ -66,9 +69,21 @@ class CommandProcessor:
                     'position': {
                         'base': cam.position[0],
                         'elevation': cam.position[1]
-                    }
+                    },
+                    'focus': cam.focus,
+                    'zoom': cam.zoom,
+                    'ircut': cam.ir_cut
                 }
             }
+        })
+        await device_client.patch_twin_reported_properties({
+            'position': {
+                'base': cam.position[0],
+                'elevation': cam.position[1]
+            },
+            'focus': cam.focus,
+            'zoom': cam.zoom,
+            'ircut': cam.ir_cut
         })
 
     @staticmethod
@@ -104,7 +119,10 @@ class CommandProcessor:
                     'position': {
                         'base': cam.position[0],
                         'elevation': cam.position[1]
-                    }
+                    },
+                    'focus': cam.focus,
+                    'zoom': cam.zoom,
+                    'ircut': cam.ir_cut
                 }
             }
         await device_client.patch_twin_reported_properties(props)
@@ -112,7 +130,10 @@ class CommandProcessor:
             'position': {
                 'base': cam.position[0],
                 'elevation': cam.position[1]
-            }
+            },
+            'focus': cam.focus,
+            'zoom': cam.zoom,
+            'ircut': cam.ir_cut
         })
 
     @staticmethod 
@@ -152,7 +173,10 @@ class CommandProcessor:
                     'position': {
                         'base': cam.position[0],
                         'elevation': cam.position[1]
-                    }
+                    },
+                    'focus': cam.focus,
+                    'zoom': cam.zoom,
+                    'ircut': cam.ir_cut
                 }
             }
         }
@@ -161,5 +185,122 @@ class CommandProcessor:
             'position': {
                 'base': cam.position[0],
                 'elevation': cam.position[1]
+            },
+            'focus': cam.focus,
+            'zoom': cam.zoom,
+            'ircut': cam.ir_cut
+        })
+
+    @staticmethod 
+    async def focus(device_client:IoTHubModuleClient, request:MethodRequest):
+        CommandProcessor.logger.info(f'{datetime.datetime.now()}: Initiating {request.name}')
+        val = request.payload.get("value", 9000)
+        response = MethodResponse.create_from_method_request(
+            request, status = 202
+        )
+        await device_client.send_method_response(response)         # immidiatly send acknowledgement of asynchronous command
+        names:List[str] = Cam.get_names()
+        cam:Cam = Cam.get(names[0])
+        cam.focus = val
+
+        # send command status update via property update
+        props = {
+            'Focus': {
+                'value': {
+                    'status': f'Command {request.name} completed at {datetime.datetime.now()}.',
+                    'position': {
+                        'base': cam.position[0],
+                        'elevation': cam.position[1]
+                    },
+                    'focus': cam.focus,
+                    'zoom': cam.zoom,
+                    'ircut': cam.ir_cut
+                }
             }
+        }
+        await device_client.patch_twin_reported_properties(props)
+        await device_client.patch_twin_reported_properties({
+            'position': {
+                'base': cam.position[0],
+                'elevation': cam.position[1]
+            },
+            'focus': cam.focus,
+            'zoom': cam.zoom,
+            'ircut': cam.ir_cut
+        })
+
+    @staticmethod 
+    async def zoom(device_client:IoTHubModuleClient, request:MethodRequest):
+        CommandProcessor.logger.info(f'{datetime.datetime.now()}: Initiating {request.name}')
+        val = request.payload.get("value", 9000)
+        response = MethodResponse.create_from_method_request(
+            request, status = 202
+        )
+        await device_client.send_method_response(response)         # immidiatly send acknowledgement of asynchronous command
+        names:List[str] = Cam.get_names()
+        cam:Cam = Cam.get(names[0])
+        cam.zoom = val
+
+        # send command status update via property update
+        props = {
+            'Zoom': {
+                'value': {
+                    'status': f'Command {request.name} completed at {datetime.datetime.now()}.',
+                    'position': {
+                        'base': cam.position[0],
+                        'elevation': cam.position[1]
+                    },
+                    'focus': cam.focus,
+                    'zoom': cam.zoom,
+                    'ircut': cam.ir_cut
+                }
+            }
+        }
+        await device_client.patch_twin_reported_properties(props)
+        await device_client.patch_twin_reported_properties({
+            'position': {
+                'base': cam.position[0],
+                'elevation': cam.position[1]
+            },
+            'focus': cam.focus,
+            'zoom': cam.zoom,
+            'ircut': cam.ir_cut
+        })
+
+    @staticmethod 
+    async def ircut(device_client:IoTHubModuleClient, request:MethodRequest):
+        CommandProcessor.logger.info(f'{datetime.datetime.now()}: Initiating {request.name}')
+        val = request.payload.get("value", False)
+        response = MethodResponse.create_from_method_request(
+            request, status = 202
+        )
+        await device_client.send_method_response(response)         # immidiatly send acknowledgement of asynchronous command
+        names:List[str] = Cam.get_names()
+        cam:Cam = Cam.get(names[0])
+        cam.ir_cut = val
+
+        # send command status update via property update
+        props = {
+            'IRCut': {
+                'value': {
+                    'status': f'Command {request.name} completed at {datetime.datetime.now()}.',
+                    'position': {
+                        'base': cam.position[0],
+                        'elevation': cam.position[1]
+                    },
+                    'focus': cam.focus,
+                    'zoom': cam.zoom,
+                    'ircut': cam.ir_cut
+                }
+            }
+        }
+        await device_client.patch_twin_reported_properties(props)
+        await device_client.patch_twin_reported_properties({
+            'position': {
+                'base': cam.position[0],
+                'elevation': cam.position[1]
+            },
+            'focus': cam.focus,
+            'zoom': cam.zoom,
+            'ircut': cam.ir_cut
         })
