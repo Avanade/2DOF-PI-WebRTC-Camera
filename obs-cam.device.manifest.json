@@ -175,6 +175,72 @@
                 "min": 25
               },
               "trim": 0.0
+            },
+            "zoom": {
+              "channel": -1,
+              "type": "None",
+              "attributes": {
+                "pulse": {
+                  "min": 0.55,
+                  "max": 2.35,
+                  "neutral": 1.4
+                },
+                "angle": {
+                  "min": 0,
+                  "max": 18000,
+                  "neutral": 9000
+                }
+              },
+              "range": {
+                "neutral": 9000,
+                "max": 18000,
+                "min": 0
+              },
+              "trim": 0.0
+            },
+            "focus": {
+              "channel": -1,
+              "type": "None",
+              "attributes": {
+                "pulse": {
+                  "min": 0.55,
+                  "max": 2.35,
+                  "neutral": 1.4
+                },
+                "angle": {
+                  "min": 0,
+                  "max": 18000,
+                  "neutral": 9000
+                }
+              },
+              "range": {
+                "neutral": 9000,
+                "max": 18000,
+                "min": 0
+              },
+              "trim": 0.0
+            },
+            "ircut": {
+              "channel": -1,
+              "type": "None",
+              "attributes": {
+                "pulse": {
+                  "min": 0.55,
+                  "max": 2.35,
+                  "neutral": 1.4
+                },
+                "angle": {
+                  "min": 0,
+                  "max": 1,
+                  "neutral": 0
+                }
+              },
+              "range": {
+                "neutral": 0,
+                "max": 1,
+                "min": 0
+              },
+              "trim": 0.0
             }
           }
         },
@@ -185,7 +251,10 @@
         "position": {
           "base": 0,
           "elevation": 68
-        }
+        },
+        "focus": 0,
+        "zoom": 0,
+        "ircut": false
       }
     }
   }
