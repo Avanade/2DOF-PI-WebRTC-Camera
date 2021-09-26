@@ -1,6 +1,3 @@
-# Copyright (c) 2021 Avanade
-# Author: Thor Schueler
-#
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
 # in the Software without restriction, including without limitation the rights
@@ -20,12 +17,34 @@
 # THE SOFTWARE.
 #
 # pylint: disable=C0103
-from .schemas import servo_schema as ServoSchema, controller_schema as ControllerSchema
-from .servo import Servo
-from .factory import ControllerFactory
-from .PCA9685 import PCA9685
+# pylint: disable=R0913
+
+from typing import Dict
 from .controller import Controller
-from .servo_attributes import ServoAttributes
-from .miuzei_sg90_attributes import MiuzeiSG90Attributes
-from .es08maII_attributes import ES08MAIIAttributes
-from .custom_servo_attributes import CustomServoAttributes
+from .PCA9685 import PCA9685
+from .ArduCamPTZ import ArduCamPTZ
+from .schemas import controller_schema
+
+
+class ControllerFactory(object):
+
+    @classmethod
+    def create(cls, props:Dict[int, object]) -> Controller:
+        """ 
+        Creates an appropriate Controller object from a dictionary of properties
+        :param data: The dictionary containing the controller properities. Must adhere to Controller.ControllerSchema
+        :type data: Dict[int, any]
+        :return: A new controller object
+        """
+
+        if "type" not in props.keys():
+            raise Exception("Controller property misses type attribute")
+        
+        instance = None
+        if props["type"] == "PCA9865": instance = PCA9685.from_dict(props)
+        elif props["type"] == "Arducam PTZ": instance = ArduCamPTZ.from_dict(props)
+        else:
+            raise Exception(f"Unknown controller type: {props['type']}")
+
+        return instance
+        

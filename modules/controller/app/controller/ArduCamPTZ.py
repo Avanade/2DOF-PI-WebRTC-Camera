@@ -1,6 +1,3 @@
-# Copyright (c) 2016 Adafruit Industries
-# Author: Tony DiCola
-#
 # Copyright (c) 2021 Avanade
 # Author: Thor Schueler
 #
@@ -25,8 +22,10 @@
 # pylint: disable=C0103
 # pylint: disable=R0913
 """
-    This library drives GPIO interaction with the Adafruit Servo HAT and provides
-    some high level functions to interact with servos on the HAT
+    This library implement the interface to the Arducam PTZ controller. The controller
+    has 2 regular servo channels (pan and tilt, assumed to be on channel 0 and 1 respectively) and
+    two micro stepper motors on channels 2 and 3 respectively. We treat the steppers as 
+    continous rotation motors with upper limits. 
 """
 import logging
 import time
@@ -39,60 +38,72 @@ from .servo import Servo
 from .servo_attributes import ServoAttributes
 from .schemas import controller_schema as schema
 
-# Registers/etc:
-PCA9685_ADDRESS = 0x40
-MODE1 = 0x00
-MODE2 = 0x01
-SUBADR1 = 0x02
-SUBADR2 = 0x03
-SUBADR3 = 0x04
-PRESCALE = 0xFE
-LED0_ON_L = 0x06
-LED0_ON_H = 0x07
-LED0_OFF_L = 0x08
-LED0_OFF_H = 0x09
-ALL_LED_ON_L = 0xFA
-ALL_LED_ON_H = 0xFB
-ALL_LED_OFF_L = 0xFC
-ALL_LED_OFF_H = 0xFD
+CHIP_I2C_ADDR = 0x0C
+BUSY_REG_ADDR = 0x04
 
-# Bits:
-RESTART = 0x80
-SLEEP = 0x10
-ALLCALL = 0x01
-INVRT = 0x10
-OUTDRV = 0x04
+OPT_BASE    = 0x1000
+OPT_FOCUS   = OPT_BASE | 0x01
+OPT_ZOOM    = OPT_BASE | 0x02
+OPT_MOTOR_X = OPT_BASE | 0x03
+OPT_MOTOR_Y = OPT_BASE | 0x04
+OPT_IRCUT   = OPT_BASE | 0x05
 
 logger = logging.getLogger('controller')
+opts = {
+    OPT_FOCUS : {
+        "REG_ADDR" : 0x01,
+        "MAX_VALUE": 18000,
+        "RESET_ADDR": 0x01 + 0x0A,
+    },
+    OPT_ZOOM  : {
+        "REG_ADDR" : 0x00,
+        "MAX_VALUE": 18000,
+        "RESET_ADDR": 0x00 + 0x0A,
+    },
+    OPT_MOTOR_X : {
+        "REG_ADDR" : 0x05,
+        "MAX_VALUE": 180,
+        "RESET_ADDR": None,
+    },
+    OPT_MOTOR_Y : {
+        "REG_ADDR" : 0x06,
+        "MAX_VALUE": 180,
+        "RESET_ADDR": None,
+    },
+    OPT_IRCUT : {
+        "REG_ADDR" : 0x0C, 
+        "MAX_VALUE": 0x01,   #0x0001 open, 0x0000 close
+        "RESET_ADDR": None,
+    }
+}
 
-class PCA9685(Controller):
-    """PCA9685 PWM LED/servo controller."""
-
+class ArduCamPTZ(Controller):
+    """ArduCam PTZ controller."""
  
-    def __init__(self, address: int = PCA9685_ADDRESS, i2c = None, 
+    def __init__(self, address: int = CHIP_I2C_ADDR, i2c = None, 
                  frequency: int = 26500000, resolution: int = 4096,
                  servo_frequency: int = 50, **kwargs):
         """__init__
 
-        Initialize the PCA9685.
+        Initialize the ArduCamPTZ controller.
 
-        :param address: The hardware address of the board. Generally 0x40 unless there is more
+        :param address: The hardware address of the board. Generally 0x12 unless there is more
                         than one board.
         :type address: integer
 
         :param i2c: I2C driver object. Generally should be None to self obtain.
-        :type i2c: Adafruit_GPIO.I2C
+        :type i2c: smbus.SMBus
 
         :param frequency: The boards oscillating frequency. Will be around 25MHz, but will
-                          slightly vary by board.
+                          slightly vary by board. This is not used for ArduCamPTZ.
         :type frequency: integer
 
         :param resolution: The pulse interval resolution. It is 12 bit. You should not have
-                           to change that.
+                           to change that. This is not used for ArduCamPTZ.
         :type resolution: integer
 
         :param servo_frequency: The pulse frequency for the attached servos. All servos on the
-                                board share the same frequency.
+                                board share the same frequency. This is not used for ArduCamPTZ.
         :type servo_frequency: integer
 
         :param kwargs: additional arguments
@@ -100,28 +111,17 @@ class PCA9685(Controller):
 
         """
         super().__init__(address, i2c, frequency, resolution, servo_frequency, **kwargs)
-        i2c = PCA9685.__ensureI2C(i2c)
-        self._device = i2c.get_i2c_device(address, **kwargs)
-        self.set_all_pwm(0, 0)
-        self._device.write8(MODE2, OUTDRV)
-        self._device.write8(MODE1, ALLCALL)
-
-        time.sleep(0.005)  # wait for oscillator
-        mode = self._device.readU8(MODE1)
-        mode = mode & ~SLEEP  # wake up (reset sleep)
-        self._device.write8(MODE1, mode)
-        time.sleep(0.005)  # wait for oscillator
-        self.set_pwm_freq(self._servo_frequency)
-        logger.info("Registered PCA9865 controller on address %d" % address)
+        self.__i2c = ArduCamPTZ.__ensureI2C(i2c)
+        logger.info("Registered controller on address %d" % address)
 
     @classmethod
     def __ensureI2C(cls, i2c=None):
         """Ensures I2C device interface"""
         if i2c is None:
-            logger.info('Initializing I2C.')
-            import Adafruit_GPIO.I2C as I2C
-            i2c = I2C
-        return i2c   
+            logger.info('Initializing SMBUS(I2C).')
+            import smbus
+            i2c = smbus.SMBus(1)
+        return i2c
 
     @classmethod
     def from_dict(cls, data:Dict[str, object]) -> object:
@@ -131,11 +131,11 @@ class PCA9685(Controller):
         :type data: dictionary
         """
         instance = cls(
-            address=data['address'],
-            i2c=None,
-            frequency=data['frequency'],
-            resolution=data['resolution'],
-            servo_frequency=data['servo_frequency']
+            data['address'],
+            None,
+            data['frequency'],
+            data['resolution'],
+            data['servo_frequency']
         )
         if 'logging_level' in data: logger.setLevel(data['logging_level'])
         return instance
@@ -154,28 +154,28 @@ class PCA9685(Controller):
         :type move_to_neutral: bool
 
         """
-        if channel < 0 or channel > 15:
-            raise ValueError('Channel must be between 0 and 15')
+        if channel not in (0x0, 0x1, 0x5, 0x6, 0x0C):
+            raise ValueError('Channel must be between 0, 1, 5, 6 or 12')
 
         if channel in self._servos:
             raise KeyError('There is already a servo on this channel: %d', channel)
 
-
         self._servos[channel] = Servo(self, channel, attributes, move_to_neutral)
+        self._servos[channel].set_angle(float(self.__read(channel)))
 
     def set_servo_pulse(self, channel: int, pulse: float):
         """set_servo_pulse
         Sets the servo on channel to a certain pulse width.
 
-        :param channel: The channel for which to obtain the servo state. Between 0 and 15.
+        :param channel: The channel for which to obtain the servo state. 0 (Zoom), 1 (Focus), 5 (Pan), 6 (Tilt) or 12 (IrCut).
         :type channel: integer
 
         :param pulse: The pulse length to set.
         :type pulse: float
 
         """
-        if channel < 0 or channel > 15:
-            raise ValueError('Channel must be between 0 and 15')
+        if channel not in (0x0, 0x1, 0x5, 0x6, 0x0C):
+            raise ValueError('Channel must be between 0, 1, 5, 6 or 12')
 
         if channel not in self._servos:
             raise KeyError('There is no servo registered on channel %d' % channel)
@@ -187,15 +187,15 @@ class PCA9685(Controller):
         """set_servo_angle
         Sets the servo on channel to a certain angle.
 
-        :param channel: The channel for which to obtain the servo state. Between 0 and 15.
+        :param channel: The channel for which to obtain the servo state. 0 (Zoom), 1 (Focus), 5 (Pan), 6 (Tilt) or 12 (IrCut).
         :type channel: integer
 
         :param angle: The angle to set. The finest resolution is about 0.5 degrees.
         :type pulse: angle
 
         """
-        if channel < 0 or channel > 15:
-            raise ValueError('Channel must be between 0 and 15')
+        if channel not in (0x0, 0x1, 0x5, 0x6, 0x0C):
+            raise ValueError('Channel must be between 0, 1, 5, 6 or 12')
 
         if channel not in self._servos:
             raise KeyError('There is no servo registered on channel %d' % channel)
@@ -211,21 +211,8 @@ class PCA9685(Controller):
         :type servo_frequency: integer
 
         """
-        prescaleval = float(self._frequency)
-        prescaleval /= float(self._resolution)
-        prescaleval /= float(servo_frequency)
-        prescaleval -= 1
-        logger.info('Setting PWM frequency to %d Hz', servo_frequency)
-        logger.info('Estimated pre-scale: %f', prescaleval)
-        prescale = int(math.floor(prescaleval + 0.5))
-        logger.info('Final pre-scale: %d', prescale)
-        oldmode = self._device.readU8(MODE1)
-        newmode = (oldmode & 0x7F) | 0x10    # sleep
-        self._device.write8(MODE1, newmode)  # go to sleep
-        self._device.write8(PRESCALE, prescale)
-        self._device.write8(MODE1, oldmode)
-        time.sleep(0.005)
-        self._device.write8(MODE1, oldmode | 0x80)
+        logger.error(f"{datetime.datetime.now()}: Settings pwm frequeny not supported for ArduCam PTZ controllers")
+        raise Exception("Settings pwm frequeny not supported for ArduCam PTZ controllers")
 
     def set_off(self, channel: int, tf: bool = True):
         """set_off
@@ -239,21 +226,13 @@ class PCA9685(Controller):
         :type tf: bool
         
         """
-        oldmode = self._device.readU8(LED0_OFF_H+4*channel)
-        if tf == 1:
-            mode = oldmode | 0x10
-            logger.info('Setting servo on channel %d to OFF', channel)
-        else:
-            mode = oldmode & 0xEF
-            logger.info('Setting servo on channel %d to PWM', channel)
-        self._device.write8(LED0_OFF_H+4*channel, mode)
-        self._warn_on_on_off = True
+        pass
 
     def set_pwm(self, channel: int, on_ticks: int, off_ticks: int):
         """set_pwm
         Sets a single PWM channel pulse.
 
-        :param channel: The channel for which to obtain the servo state. Between 0 and 15.
+        :param channel: The channel for which to obtain the servo state. 0 (Zoom), 1 (Focus), 5 (Pan), 6 (Tilt) or 12 (IrCut).
         :type channel: integer
 
         :param on_ticks: Number of ticks into a period at which to switch the pulse on.
@@ -263,27 +242,31 @@ class PCA9685(Controller):
         :type pulse: integer
 
         """
-        if channel < 0 or channel > 15:
-            raise ValueError('Channel must be between 0 and 15')
+        if channel not in (0x0, 0x1, 0x5, 0x6, 0x0C):
+            raise ValueError('Channel must be between 0, 1, 5, 6 or 12')
         if on_ticks < 0:
             raise ValueError('Value for on_ticks must be greater or equaly to zero')
         if on_ticks > off_ticks:
             raise ValueError('Value for on_ticks must be less than or equal to value for off_ticks')
 
-        offmode = self._device.readU8(LED0_OFF_H+4*channel) & 0x10          # see whether channel is permamently set off
-        onmode = self._device.readU8(LED0_ON_H+4*channel) & 0x10            # see whether channel is permanently set on
+        if channel in (0x6, 0x5):
+            servo = self._servos[channel]
+            angle = int(servo.angle)
+            self.__write(channel, angle)
+            self.__waitingForFree()
+            time.sleep(0.01)
 
-        if offmode != 0 and self._warn_on_on_off: 
-            logger.warning(f"Channel {channel} is currently turned off. Setting PMW values but the channel will not actuate until turned on.")
-            self._warn_on_on_off = False
-        if onmode != 0 and self._warn_on_on_off: 
-            logger.warning(f"Channel {channel} is currently turned on. Setting PMW values but the channel will not actuate until turn-on is removed.")
-            self._warn_on_on_off = False
+        if channel in (0x0, 0x1):
+            servo = self._servos[channel]
+            pulse = int(servo.pulse)
+            self.__write(channel, pulse)
+            self.__waitingForFree()
 
-        self._device.write8(LED0_ON_L+4*channel, on_ticks & 0xFF)           # & 0xFF ensures the only the first 8 bits are used to set the register
-        self._device.write8(LED0_ON_H+4*channel, (on_ticks >> 8)|onmode)    # |onmode ensures that the channel set on is not changed
-        self._device.write8(LED0_OFF_L+4*channel, off_ticks & 0xFF)         # & 0xFF ensures the only the first 8 bits are used to set the register
-        self._device.write8(LED0_OFF_H+4*channel, (off_ticks >> 8)|offmode) # |offmode ensures that the channel set off is not changed 
+        if channel == 0x0C:
+            servo = self._servos[channel]
+            pulse = int(servo.pulse)
+            self.__write(channel, 0x0 if pulse==0 else 0x1)
+            self.__waitingForFree()
 
     def set_all_pwm(self, on_ticks: int, off_ticks: int):
         """set_pwm
@@ -296,19 +279,52 @@ class PCA9685(Controller):
         :type pulse: integer
 
         """
-        if on_ticks < 0:
-            raise ValueError('Value for on_ticks must be greater or equaly to zero')
-        if on_ticks > off_ticks:
-            raise ValueError('Value for on_ticks must be less than or equal to value for off_ticks')
-        self._device.write8(ALL_LED_ON_L, on_ticks & 0xFF)
-        self._device.write8(ALL_LED_ON_H, on_ticks >> 8)
-        self._device.write8(ALL_LED_OFF_L, off_ticks & 0xFF)
-        self._device.write8(ALL_LED_OFF_H, off_ticks >> 8)
+        logger.error(f"{datetime.datetime.now()}: set_all_pwm() not supported for ArduCam PTZ controllers")
+        raise Exception("set_all_pwm() not supported for ArduCam PTZ controllers")
 
     def software_reset(self, i2c=None, **kwargs):
         """Sends a software reset (SWRST) command to all servo drivers on the bus."""
-        # Setup I2C interface for device 0x00 to talk to all of them.
-        i2c = PCA9685.__ensureI2C(i2c)
-        d = i2c.get_i2c_device(0x00, **kwargs)
-        d.writeRaw8(0x06)  # SWRST
+        bus = ArduCamPTZ.__ensureI2C(i2c)
+        for key in opts.keys():
+            info = opts[key]
+            if info == None or info["RESET_ADDR"] == None: continue
+            self.__waitingForFree()
+            self.__write(info["RESET_ADDR"], 0x0000)
+        self.__waitingForFree()
         logger.info('Servo controllers have been reset.')
+
+    def __isBusy(self) -> bool:
+        """Determines whether the controller is currently busy executing operations"""
+        return self.__read(BUSY_REG_ADDR) != 0
+
+    def __waitingForFree(self, timeout:int=5, period:float=0.01):
+        """
+        Waits until all pending operations currently queued with the controller are complete.
+        """
+        count = 0
+        begin = time.time()
+        while self.__isBusy() and count < (timeout / period):
+            count += 1
+            time.sleep(period)
+        if count >= (timeout / period):
+            logger.warning(f"{datetime.datetime.now()}: Timeout waiting for controller to complete work")
+
+    def __read(self, reg_addr:int) -> int:
+        """Reads the controller's registry value on a specified address"""
+        value = self.__i2c.read_word_data(self._address,reg_addr)
+        value = ((value & 0x00FF)<< 8) | ((value & 0xFF00) >> 8)
+        return value
+
+    def __write(self,reg_addr: int, value:int):
+        """
+        Sets a registry value in the controller
+
+        :param reg_addr:    Address of the register to write
+        :type reg_addr:     int
+
+        :param value:       Value to write
+        :type value:        int
+        """
+        if value < 0: value = 0
+        value = ((value & 0x00FF)<< 8) | ((value & 0xFF00) >> 8)
+        return self.__i2c.write_word_data(self._address,reg_addr,value)
