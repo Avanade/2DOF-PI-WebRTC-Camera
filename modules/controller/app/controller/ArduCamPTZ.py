@@ -248,24 +248,23 @@ class ArduCamPTZ(Controller):
             raise ValueError('Value for on_ticks must be greater or equaly to zero')
         if on_ticks > off_ticks:
             raise ValueError('Value for on_ticks must be less than or equal to value for off_ticks')
-        logger.error(f"set val on channel {channel}")
+
         if channel in (0x6, 0x5):
             servo = self._servos[channel]
             angle = int(servo.angle)
             self.__write(channel, angle)
             self.__waitingForFree()
+            time.sleep(0.01)
 
         if channel in (0x0, 0x1):
             servo = self._servos[channel]
             pulse = int(servo.pulse)
-            logger.error(f"{off_ticks}-{on_ticks} -> {pulse}")
             self.__write(channel, pulse)
             self.__waitingForFree()
 
         if channel == 0x0C:
             servo = self._servos[channel]
             pulse = int(servo.pulse)
-            logger.error(f"{off_ticks}-{on_ticks} -> {pulse}")
             self.__write(channel, 0x0 if pulse==0 else 0x1)
             self.__waitingForFree()
 
