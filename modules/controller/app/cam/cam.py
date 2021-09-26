@@ -26,7 +26,7 @@ import logging
 import json
 from typing import Dict, List, Tuple
 from jsonschema import validate, RefResolver, Draft4Validator, ValidationError, SchemaError
-from controller import PCA9685, Servo, ServoAttributes, MiuzeiSG90Attributes, ES08MAIIAttributes, CustomServoAttributes, software_reset
+from controller import Controller, ControllerFactory, Servo, ServoAttributes, MiuzeiSG90Attributes, ES08MAIIAttributes, CustomServoAttributes
 from .cam_servo import CamServo
 from .schemas import cam_schema, schema_store
 
@@ -45,10 +45,14 @@ class Cam(object):
     elevation_trim = 5.0
     _inc = 0.5                      # servo movement increment in degrees
     _instances = {}
-    _controllers: List[int] = []
+    _controllers: Dict[int, Controller] = {}
 
+
+    #
+    # region constructor
+    #
     def __init__(self, 
-            controller: PCA9685,
+            controller: Controller,
             base_channel: int = 15,
             elevation_channel: int = 12,
             initialize: bool = True,
@@ -58,7 +62,7 @@ class Cam(object):
         method, which ensures that a meArm is not registered twice.
         
         :param controller: The controller to which the arm is attached. 
-        :type controller: PCA9685
+        :type controller: Controller
 
         :param base_channel: The channel for the base rotation servo.
         :type base_channel: int
@@ -96,14 +100,27 @@ class Cam(object):
         
         self._controller = controller
         self._turnedOff = False
-
+        self._focus_servo = None
+        self._zoom_servo = None
+        self._ircut_servo = None
+        self._zoom = -1
+        self._focus = -1
+        self._ircut = False
         self.__setup_defaults(base_channel, elevation_channel)
 
         if initialize: self.initialize()
         Cam._instances[self._id] = self
-        if controller.address not in Cam._controllers: Cam._controllers.append(controller.address)
+        if controller.address not in Cam._controllers.keys(): Cam._controllers[controller.address] = controller
         self._logger.info("cam position controller with id %s created", self._id)
     
+    #
+    # endregion
+    #
+
+    #
+    # region private methods
+    #
+
     def __setup_defaults(self, base_channel: int, elevation_channel: int):
         """__setup_defaults
         Setup defaults for the servos based on static defaults.
@@ -121,7 +138,15 @@ class Cam(object):
                                 Cam.elevation_neutral_angle, Cam.elevation_min_angle, Cam.elevation_max_angle, Cam.elevation_trim)
         self._base_angle = self._base_servo.neutral + self._base_servo.trim
         self._elevation_angle = self._elevation_servo.neutral + self._elevation_servo.trim
-    
+
+    #
+    # endregion
+    #
+
+    #
+    # region static boot methods
+    #
+
     @classmethod
     def boot_from_json_file(cls, json_file:str) -> Dict[str,object]:
         """boot_from_json_file
@@ -164,7 +189,7 @@ class Cam(object):
         else: d = [data]
         for c in d:
             level = "INFO"
-            controller = PCA9685.from_dict(c['controller'])
+            controller = ControllerFactory.create(c['controller'])
             if 'logging_level' in c['servos']: level = c['servos']['logging_level']
 
             tag = str(c['servos']['base']['channel']).zfill(2) + str(c['servos']['elevation']['channel']).zfill(2)
@@ -172,20 +197,25 @@ class Cam(object):
             if id in Cam._instances: Cam._instances[id].delete(False)
             obj = cls(controller, c['servos']['base']['channel'], c['servos']['elevation']['channel'], False, level)
             obj._base_servo = CamServo.from_dict(c['servos']['base'])
-            obj._elevation_servo = CamServo.from_dict(c['servos']['elevation']) 
+            obj._elevation_servo = CamServo.from_dict(c['servos']['elevation'])
+
+            if 'zoom' in c['servos'] and c['servos']['zoom']['type']!='None' and c['servos']['zoom']['channel']!=-1: obj._zoom_servo = CamServo.from_dict(c['servos']['zoom'])
+            if 'focus' in c['servos'] and c['servos']['focus']['type']!='None' and c['servos']['focus']['channel']!=-1: obj._focus_servo = CamServo.from_dict(c['servos']['focus'])
+            if 'ircut' in c['servos'] and c['servos']['ircut']['type']!='None' and c['servos']['ircut']['channel']!=-1: obj._ircut_servo = CamServo.from_dict(c['servos']['ircut'])
+
             obj._inc = c['servos']['angle_increment']
             obj.initialize(False, False)
             cls._instances[id] = obj
         return cls._instances
 
     @classmethod
-    def createWithServoParameters(cls, controller: PCA9685,
+    def createWithServoParameters(cls, controller: Controller,
             base_channel: int, elevation_channel: int) -> object:
         """createWithServoParameters
         Creates a cam controller using parameters.
 
         :param controller: The controller to which the cam servos are attached. 
-        :type controller: PCA9685
+        :type controller: Controller
                 
         :param base_channel: The channel for the base servo.
         :type base_channel: int
@@ -210,6 +240,22 @@ class Cam(object):
         cls._instances[id] = obj
         return obj
 
+    #
+    # endregion
+    #
+
+    #
+    # region class methods
+    #
+
+    @classmethod
+    def controller_reset(cls):
+        """
+        Resets the I2C Controller
+        """
+        for key in cls._controllers.keys():
+            cls._controllers[key].software_reset() 
+
     @classmethod
     def shutdown(cls, clear:bool = False):
         """shutdown
@@ -226,7 +272,7 @@ class Cam(object):
             cam.delete(False)
         if clear: 
             cls._instances.clear()
-            software_reset()
+            cls.controller_reset()
 
     @classmethod
     def get(cls, id: str) -> object:
@@ -254,7 +300,7 @@ class Cam(object):
         return list(cls._instances.keys())
 
     @classmethod
-    def get_controllers(cls) -> List[int]:
+    def get_controllers(cls) -> Dict[int, Controller]:
         """get_controllers
         Gets a list of registered controller addresses
 
@@ -262,6 +308,14 @@ class Cam(object):
         :rtype: [int]
         """
         return cls._controllers.copy()
+
+    #
+    # endregion
+    #
+
+    #
+    # region properties
+    #
 
     @property
     def controller(self) -> int:
@@ -283,7 +337,7 @@ class Cam(object):
 
     @property
     def position(self) -> Tuple[float, float]:
-        """Gets the current position of the gripper
+        """Gets the current position of the camera
 
         :return: The current position
         :rtype: 2 dimensional tuple of base and elevation angles.
@@ -292,6 +346,11 @@ class Cam(object):
 
     @position.setter
     def position(self, position:Tuple[float, float]):
+        """Sets the position of the camera
+        
+        :param position:    Tuple containing position (pan, tilt)
+        :type position:     Tuple(float, float)
+        """
         x = position[0]
         y = position[1]
         if x + self._base_servo.trim > self._base_servo.max: x = self._base_servo.max - self._base_servo.trim     
@@ -318,6 +377,72 @@ class Cam(object):
             self._controller.set_servo_angle(self._base_servo.channel, self._base_angle + self._base_servo.trim)
             self._controller.set_servo_angle(self._elevation_servo.channel, self._elevation_angle + self._elevation_servo.trim)
 
+    @property
+    def focus(self) -> float:
+        """Gets the focus of the camera
+
+        :return: The current focus
+        :rtype: float
+        """
+        return self._focus
+
+    @focus.setter
+    def focus(self, val:float):
+        """Sets the focus of the camera
+        
+        :param val: The focus to set.
+        :type val: float
+        """
+        if self._focus_servo is None:
+            self._logger.warning(f"Attempt to set focus when no focus servo is present.")
+        else:
+            self._focus = val
+            self._controller.set_servo_angle(self._focus_servo.channel, self._focus + self._focus_servo.trim)
+
+    @property
+    def zoom(self) -> float:
+        """Gets the zoom for the camera
+
+        :return: The current zoom
+        :rtype: float
+        """
+        return self._zoom
+
+    @zoom.setter
+    def zoom(self, val:float):
+        """Sets the zoom for the camera
+        
+        :param val: The zoom to set.
+        :type val: float
+        """
+        if self._zoom_servo is None:
+            self._logger.warning(f"Attempt to set zoom when no zoom servo is present.")
+        else:
+            self._zoom = val
+            self._controller.set_servo_angle(self._zoom_servo.channel, self._zoom + self._zoom_servo.trim)
+
+    @property
+    def ir_cut(self) -> bool:
+        """Gets the whether IR Cut is enabled for the camera
+
+        :return: The current IR Cut setting
+        :rtype: bool
+        """
+        return self._ircut
+
+    @zoom.setter
+    def ir_cut(self, val:bool):
+        """Enables or disables IR Cut for the camera
+        
+        :param val: Whether to enable IR Cut.
+        :type val: bool
+        """
+        if self._ircut_servo is None:
+            self._logger.warning(f"Attempt to set IR Cut when no ir cut servo is present.")
+        else:
+            self._ircut = val
+            self._controller.set_servo_angle(self._ircut_servo.channel, self._ircut_servo.max if self._ircut else self._ircut_servo.min)
+
     @property 
     def boundaries(self) -> Tuple[Tuple[float, float, float, float], Tuple[float, float, float, float]]:
         """Returns the pan and tile boundaries for the cam
@@ -328,6 +453,14 @@ class Cam(object):
         return (
             (self._base_servo.min, self._base_servo.max, self._base_servo.neutral, self._base_servo.trim),
             (self._elevation_servo.min, self._elevation_servo.max, self._elevation_servo.neutral, self._elevation_servo.trim))
+
+    #
+    # endregion
+    #
+
+    #
+    # region public methods
+    #
 
     def delete(self, reset:bool=True):
         """delete
@@ -348,6 +481,16 @@ class Cam(object):
         """ 
         self._controller.add_servo(self._base_servo.channel, self._base_servo.attributes, False)
         self._controller.add_servo(self._elevation_servo.channel, self._elevation_servo.attributes, False)
+        if self._zoom_servo is not None: self._controller.add_servo(self._zoom_servo.channel, self._zoom_servo.attributes, False)
+        if self._focus_servo is not None: self._controller.add_servo(self._focus_servo.channel, self._focus_servo.attributes, False)      
+        if self._ircut_servo is not None: self._controller.add_servo(self._ircut_servo.channel, self._ircut_servo.attributes, False)
+
+        self._base_angle = self._base_servo.neutral + self._base_servo.trim
+        self._elevation_angle = self._elevation_servo.neutral + self._elevation_servo.trim
+        if self._zoom_servo: self._zoom = self._zoom_servo.neutral + self._zoom_servo.trim
+        if self._focus_servo: self._focus = self._focus_servo.neutral + self._focus_servo.trim
+        if self._ircut_servo: self._ircut = self._ircut_servo.neutral + self._ircut_servo.trim
+        
         if reset: self.reset()
         if shutoff: self.turn_off()
         self._logger.info("cam with id %s initialized,", self._id)
@@ -450,10 +593,14 @@ class Cam(object):
         self.position = (self._base_angle, self._elevation_angle)
         while True: 
             self.position = (self._base_servo.max, self._elevation_angle)
-            self.position = (self._base_angle, self._elevation_servo.min)   
-            self.position = (self._base_servo.min, self._elevation_angle)
-            self.position = (self._base_angle, self._elevation_servo.max)
+            self.position = (self._base_servo.max, self._elevation_servo.min)   
+            self.position = (self._base_servo.min, self._elevation_servo.min)
+            self.position = (self._base_servo.min, self._elevation_servo.max)
+            self.position = (self._base_servo.neutral, self._elevation_servo.max)
             self.position = (self._base_servo.neutral, self._elevation_servo.neutral)
             if not repeat: break    
         self.turn_off()        
 
+    #
+    # endregion
+    #
