@@ -593,9 +593,10 @@ class Cam(object):
         self.position = (self._base_angle, self._elevation_angle)
         while True: 
             self.position = (self._base_servo.max, self._elevation_angle)
-            self.position = (self._base_angle, self._elevation_servo.min)   
-            self.position = (self._base_servo.min, self._elevation_angle)
-            self.position = (self._base_angle, self._elevation_servo.max)
+            self.position = (self._base_servo.max, self._elevation_servo.min)   
+            self.position = (self._base_servo.min, self._elevation_servo.min)
+            self.position = (self._base_servo.min, self._elevation_servo.max)
+            self.position = (self._base_servo.neutral, self._elevation_servo.max)
             self.position = (self._base_servo.neutral, self._elevation_servo.neutral)
             if not repeat: break    
         self.turn_off()        
