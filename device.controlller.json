@@ -2,525 +2,992 @@
   "@id": "dtmi:HTXI:DeviceController;1",
   "@type": "Interface",
   "contents": [
-    {
-      "@type": "Command",
-      "commandType": "synchronous",
-      "displayName": {
-        "en": "Test"
-      },
-      "name": "Test",
-      "request": {
-        "@type": "CommandPayload",
-        "displayName": {
-          "en": "request"
-        },
-        "name": "request",
-        "schema": {
-          "@type": "Object",
+      {
+          "@id": "dtmi:HTXI:DeviceController:Test;1",
+          "@type": "Command",
+          "commandType": "synchronous",
           "displayName": {
-            "en": "Object"
+              "en": "Test"
           },
-          "fields": [
-            {
+          "name": "Test",
+          "request": {
+              "@type": "CommandPayload",
               "displayName": {
-                "en": "countdown"
+                  "en": "request"
               },
-              "name": "countdown",
-              "schema": "long"
-            }
-          ]
-        }
-      },
-      "response": {
-        "@type": "CommandPayload",
-        "displayName": {
-          "en": "response"
-        },
-        "name": "response",
-        "schema": {
-          "@type": "Object",
-          "displayName": {
-            "en": "Object"
-          },
-          "fields": [
-            {
-              "displayName": {
-                "en": "status"
-              },
-              "name": "status",
-              "schema": "string"
-            }
-          ]
-        }
-      }
-    },
-    {
-      "@type": "Command",
-      "commandType": "synchronous",
-      "displayName": {
-        "en": "PanBy"
-      },
-      "name": "PanBy",
-      "request": {
-        "@type": "CommandPayload",
-        "displayName": {
-          "en": "request"
-        },
-        "name": "request",
-        "schema": {
-          "@type": "Object",
-          "displayName": {
-            "en": "Object"
-          },
-          "fields": [
-            {
-              "displayName": {
-                "en": "angle"
-              },
-              "name": "angle",
-              "schema": "double"
-            }
-          ]
-        }
-      },
-      "response": {
-        "@type": "CommandPayload",
-        "displayName": {
-          "en": "response"
-        },
-        "name": "response",
-        "schema": {
-          "@type": "Object",
-          "displayName": {
-            "en": "Object"
-          },
-          "fields": [
-            {
-              "displayName": {
-                "en": "status"
-              },
-              "name": "status",
-              "schema": "string"
-            },
-            {
-              "displayName": {
-                "en": "position"
-              },
-              "name": "position",
-              "dtmi:dtdl:property:schema;2": {
-                "@type": "Object",
-                "displayName": {
-                  "en": "Object"
-                },
-                "fields": [
-                  {
-                    "displayName": {
-                      "en": "Base Angle"
-                    },
-                    "name": "base",
-                    "schema": "double"
+              "name": "request",
+              "schema": {
+                  "@type": "Object",
+                  "displayName": {
+                      "en": "Object"
                   },
-                  {
-                    "displayName": {
-                      "en": "Elevation"
-                    },
-                    "name": "elevation",
-                    "schema": "double"
-                  }
-                ]
+                  "fields": [
+                      {
+                          "displayName": {
+                              "en": "countdown"
+                          },
+                          "name": "countdown",
+                          "schema": "long"
+                      }
+                  ]
               }
-            }
-          ]
-        }
-      }
-    },
-    {
-
-      "@type": "Command",
-      "commandType": "synchronous",
-      "displayName": {
-        "en": "PanTo"
-      },
-      "name": "PanTo",
-      "request": {
-        "@type": "CommandPayload",
-        "displayName": {
-          "en": "request"
-        },
-        "name": "request",
-        "schema": {
-          "@type": "Object",
-          "displayName": {
-            "en": "Object"
           },
-          "fields": [
-            {
+          "response": {
+              "@type": "CommandPayload",
               "displayName": {
-                "en": "angle"
+                  "en": "response"
               },
-              "name": "angle",
-              "schema": "double"
-            }
-          ]
-        }
-      },
-      "response": {
-        "@type": "CommandPayload",
-        "displayName": {
-          "en": "response"
-        },
-        "name": "response",
-        "schema": {
-          "@type": "Object",
-          "displayName": {
-            "en": "Object"
-          },
-          "fields": [
-            {
-              "displayName": {
-                "en": "status"
-              },
-              "name": "status",
-              "schema": "string"
-            },
-            {
-              "displayName": {
-                "en": "position"
-              },
-              "name": "position",
-              "dtmi:dtdl:property:schema;2": {
-                "@type": "Object",
-                "displayName": {
-                  "en": "Object"
-                },
-                "fields": [
-                  {
-                    "displayName": {
-                      "en": "base"
-                    },
-                    "name": "base",
-                    "schema": "double"
+              "name": "response",
+              "schema": {
+                  "@type": "Object",
+                  "displayName": {
+                      "en": "Object"
                   },
-                  {
-                    "displayName": {
-                      "en": "elevation"
-                    },
-                    "name": "elevation",
-                    "schema": "double"
-                  }
-                ]
+                  "fields": [
+                      {
+                          "displayName": {
+                              "en": "status"
+                          },
+                          "name": "status",
+                          "schema": "string"
+                      },
+                      {
+                          "displayName": {
+                              "en": "position"
+                          },
+                          "name": "position",
+                          "dtmi:dtdl:property:schema;2": {
+                              "@type": "Object",
+                              "displayName": {
+                                  "en": "Object"
+                              },
+                              "fields": [
+                                  {
+                                      "displayName": {
+                                          "en": "base"
+                                      },
+                                      "name": "base",
+                                      "schema": "double"
+                                  },
+                                  {
+                                      "displayName": {
+                                          "en": "elevation"
+                                      },
+                                      "name": "elevation",
+                                      "schema": "double"
+                                  }
+                              ]
+                          }
+                      },
+                      {
+                          "displayName": {
+                              "en": "zoom"
+                          },
+                          "name": "zoom",
+                          "schema": "double"
+                      },
+                      {
+                          "displayName": {
+                              "en": "focus"
+                          },
+                          "name": "focus",
+                          "schema": "double"
+                      },
+                      {
+                          "displayName": {
+                              "en": "ircut"
+                          },
+                          "name": "ircut",
+                          "schema": "boolean"
+                      }
+                  ]
               }
-            }
-          ]
-        }
-      }
-    },
-    {
-      "@type": "Command",
-      "commandType": "synchronous",
-      "displayName": {
-        "en": "TiltBy"
+          }
       },
-      "name": "TiltBy",
-      "request": {
-        "@type": "CommandPayload",
-        "displayName": {
-          "en": "request"
-        },
-        "name": "request",
-        "schema": {
-          "@type": "Object",
+      {
+          "@id": "dtmi:HTXI:DeviceController:PanBy;1",
+          "@type": "Command",
+          "commandType": "synchronous",
           "displayName": {
-            "en": "Object"
+              "en": "PanBy"
           },
-          "fields": [
-            {
+          "name": "PanBy",
+          "request": {
+              "@type": "CommandPayload",
               "displayName": {
-                "en": "angle"
+                  "en": "request"
               },
-              "name": "angle",
-              "schema": "double"
-            }
-          ]
-        }
-      },
-      "response": {
-        "@type": "CommandPayload",
-        "displayName": {
-          "en": "response"
-        },
-        "name": "response",
-        "schema": {
-          "@type": "Object",
-          "displayName": {
-            "en": "Object"
-          },
-          "fields": [
-            {
-              "displayName": {
-                "en": "status"
-              },
-              "name": "status",
-              "schema": "string"
-            },
-            {
-              "displayName": {
-                "en": "position"
-              },
-              "name": "position",
-              "dtmi:dtdl:property:schema;2": {
-                "@type": "Object",
-                "displayName": {
-                  "en": "Object"
-                },
-                "fields": [
-                  {
-                    "displayName": {
-                      "en": "base"
-                    },
-                    "name": "base",
-                    "schema": "double"
+              "name": "request",
+              "schema": {
+                  "@type": "Object",
+                  "displayName": {
+                      "en": "Object"
                   },
-                  {
-                    "displayName": {
-                      "en": "elevation"
-                    },
-                    "name": "elevation",
-                    "schema": "double"
-                  }
-                ]
+                  "fields": [
+                      {
+                          "displayName": {
+                              "en": "angle"
+                          },
+                          "name": "angle",
+                          "schema": "double"
+                      }
+                  ]
               }
-            }
-          ]
-        }
-      }
-    },
-    {
-      "@type": "Command",
-      "commandType": "synchronous",
-      "displayName": {
-        "en": "TiltTo"
-      },
-      "name": "TiltTo",
-      "request": {
-        "@type": "CommandPayload",
-        "displayName": {
-          "en": "request"
-        },
-        "name": "request",
-        "schema": {
-          "@type": "Object",
-          "displayName": {
-            "en": "Object"
           },
-          "fields": [
-            {
+          "response": {
+              "@type": "CommandPayload",
               "displayName": {
-                "en": "angle"
+                  "en": "response"
               },
-              "name": "angle",
-              "schema": "double"
-            }
-          ]
-        }
-      },
-      "response": {
-        "@type": "CommandPayload",
-        "displayName": {
-          "en": "response"
-        },
-        "name": "response",
-        "schema": {
-          "@type": "Object",
-          "displayName": {
-            "en": "Object"
-          },
-          "fields": [
-            {
-              "displayName": {
-                "en": "status"
-              },
-              "name": "status",
-              "schema": "string"
-            },
-            {
-              "displayName": {
-                "en": "position"
-              },
-              "name": "position",
-              "dtmi:dtdl:property:schema;2": {
-                "@type": "Object",
-                "displayName": {
-                  "en": "Object"
-                },
-                "fields": [
-                  {
-                    "displayName": {
-                      "en": "base"
-                    },
-                    "name": "base",
-                    "schema": "double"
+              "name": "response",
+              "schema": {
+                  "@type": "Object",
+                  "displayName": {
+                      "en": "Object"
                   },
-                  {
-                    "displayName": {
-                      "en": "elevation"
-                    },
-                    "name": "elevation",
-                    "schema": "double"
-                  }
-                ]
+                  "fields": [
+                      {
+                          "displayName": {
+                              "en": "status"
+                          },
+                          "name": "status",
+                          "schema": "string"
+                      },
+                      {
+                          "displayName": {
+                              "en": "position"
+                          },
+                          "name": "position",
+                          "dtmi:dtdl:property:schema;2": {
+                              "@type": "Object",
+                              "displayName": {
+                                  "en": "Object"
+                              },
+                              "fields": [
+                                  {
+                                      "displayName": {
+                                          "en": "base"
+                                      },
+                                      "name": "base",
+                                      "schema": "double"
+                                  },
+                                  {
+                                      "displayName": {
+                                          "en": "elevation"
+                                      },
+                                      "name": "elevation",
+                                      "schema": "double"
+                                  }
+                              ]
+                          }
+                      },
+                      {
+                          "displayName": {
+                              "en": "focus"
+                          },
+                          "name": "focus",
+                          "schema": "double"
+                      },
+                      {
+                          "displayName": {
+                              "en": "zoom"
+                          },
+                          "name": "zoom",
+                          "schema": "double"
+                      },
+                      {
+                          "displayName": {
+                              "en": "ircut"
+                          },
+                          "name": "ircut",
+                          "schema": "boolean"
+                      }
+                  ]
               }
-            }
-          ]
-        }
-      }
-    },
-    {
-      "@type": "Command",
-      "commandType": "synchronous",
-      "displayName": {
-        "en": "Nudge"
+          }
       },
-      "name": "Nudge",
-      "request": {
-        "@type": "CommandPayload",
-        "displayName": {
-          "en": "request"
-        },
-        "name": "request",
-        "schema": {
-          "@type": "Object",
+      {
+          "@id": "dtmi:HTXI:DeviceController:PanTo;1",
+          "@type": "Command",
+          "commandType": "synchronous",
           "displayName": {
-            "en": "Object"
+              "en": "PanTo"
           },
-          "fields": [
-            {
+          "name": "PanTo",
+          "request": {
+              "@type": "CommandPayload",
               "displayName": {
-                "en": "direction"
+                  "en": "request"
               },
-              "name": "direction",
-              "dtmi:dtdl:property:schema;2": {
-                "@type": "Enum",
-                "displayName": {
-                  "en": "Enum"
-                },
-                "enumValues": [
-                  {
-                    "displayName": {
-                      "en": "Up"
-                    },
-                    "enumValue": "up",
-                    "name": "up"
+              "name": "request",
+              "schema": {
+                  "@type": "Object",
+                  "displayName": {
+                      "en": "Object"
                   },
-                  {
-                    "displayName": {
-                      "en": "Down"
-                    },
-                    "enumValue": "down",
-                    "name": "down"
-                  },
-                  {
-                    "displayName": {
-                      "en": "Left"
-                    },
-                    "enumValue": "left",
-                    "name": "left"
-                  },
-                  {
-                    "displayName": {
-                      "en": "Right"
-                    },
-                    "enumValue": "right",
-                    "name": "right"
-                  }
-                ],
-                "valueSchema": "string"
+                  "fields": [
+                      {
+                          "displayName": {
+                              "en": "angle"
+                          },
+                          "name": "angle",
+                          "schema": "double"
+                      }
+                  ]
               }
-            }
-          ]
-        }
+          },
+          "response": {
+              "@type": "CommandPayload",
+              "displayName": {
+                  "en": "response"
+              },
+              "name": "response",
+              "schema": {
+                  "@type": "Object",
+                  "displayName": {
+                      "en": "Object"
+                  },
+                  "fields": [
+                      {
+                          "displayName": {
+                              "en": "status"
+                          },
+                          "name": "status",
+                          "schema": "string"
+                      },
+                      {
+                          "displayName": {
+                              "en": "position"
+                          },
+                          "name": "position",
+                          "dtmi:dtdl:property:schema;2": {
+                              "@type": "Object",
+                              "displayName": {
+                                  "en": "Object"
+                              },
+                              "fields": [
+                                  {
+                                      "displayName": {
+                                          "en": "base"
+                                      },
+                                      "name": "base",
+                                      "schema": "double"
+                                  },
+                                  {
+                                      "displayName": {
+                                          "en": "elevation"
+                                      },
+                                      "name": "elevation",
+                                      "schema": "double"
+                                  }
+                              ]
+                          }
+                      },
+                      {
+                          "displayName": {
+                              "en": "focus"
+                          },
+                          "name": "focus",
+                          "schema": "double"
+                      },
+                      {
+                          "displayName": {
+                              "en": "zoom"
+                          },
+                          "name": "zoom",
+                          "schema": "double"
+                      },
+                      {
+                          "displayName": {
+                              "en": "ircut"
+                          },
+                          "name": "ircut",
+                          "schema": "boolean"
+                      }
+                  ]
+              }
+          }
       },
-      "response": {
-        "@type": "CommandPayload",
-        "displayName": {
-          "en": "response"
-        },
-        "name": "response",
-        "schema": {
-          "@type": "Object",
+      {
+          "@id": "dtmi:HTXI:DeviceController:TiltBy;1",
+          "@type": "Command",
+          "commandType": "synchronous",
           "displayName": {
-            "en": "Object"
+              "en": "TiltBy"
           },
-          "fields": [
-            {
+          "name": "TiltBy",
+          "request": {
+              "@type": "CommandPayload",
               "displayName": {
-                "en": "status"
+                  "en": "request"
               },
-              "name": "status",
-              "schema": "string"
-            },
-            {
-              "displayName": {
-                "en": "position"
-              },
-              "name": "position",
-              "dtmi:dtdl:property:schema;2": {
-                "@type": "Object",
-                "displayName": {
-                  "en": "Object"
-                },
-                "fields": [
-                  {
-                    "displayName": {
-                      "en": "base"
-                    },
-                    "name": "base",
-                    "schema": "double"
+              "name": "request",
+              "schema": {
+                  "@type": "Object",
+                  "displayName": {
+                      "en": "Object"
                   },
-                  {
-                    "displayName": {
-                      "en": "elevation"
-                    },
-                    "name": "elevation",
-                    "schema": "double"
-                  }
-                ]
+                  "fields": [
+                      {
+                          "displayName": {
+                              "en": "angle"
+                          },
+                          "name": "angle",
+                          "schema": "double"
+                      }
+                  ]
               }
-            }
-          ]
-        }
+          },
+          "response": {
+              "@type": "CommandPayload",
+              "displayName": {
+                  "en": "response"
+              },
+              "name": "response",
+              "schema": {
+                  "@type": "Object",
+                  "displayName": {
+                      "en": "Object"
+                  },
+                  "fields": [
+                      {
+                          "displayName": {
+                              "en": "status"
+                          },
+                          "name": "status",
+                          "schema": "string"
+                      },
+                      {
+                          "displayName": {
+                              "en": "position"
+                          },
+                          "name": "position",
+                          "dtmi:dtdl:property:schema;2": {
+                              "@type": "Object",
+                              "displayName": {
+                                  "en": "Object"
+                              },
+                              "fields": [
+                                  {
+                                      "displayName": {
+                                          "en": "base"
+                                      },
+                                      "name": "base",
+                                      "schema": "double"
+                                  },
+                                  {
+                                      "displayName": {
+                                          "en": "elevation"
+                                      },
+                                      "name": "elevation",
+                                      "schema": "double"
+                                  }
+                              ]
+                          }
+                      },
+                      {
+                          "displayName": {
+                              "en": "focus"
+                          },
+                          "name": "focus",
+                          "schema": "double"
+                      },
+                      {
+                          "displayName": {
+                              "en": "zoom"
+                          },
+                          "name": "zoom",
+                          "schema": "double"
+                      },
+                      {
+                          "displayName": {
+                              "en": "ircut"
+                          },
+                          "name": "ircut",
+                          "schema": "boolean"
+                      }
+                  ]
+              }
+          }
+      },
+      {
+          "@id": "dtmi:HTXI:DeviceController:TiltTo;1",
+          "@type": "Command",
+          "commandType": "synchronous",
+          "displayName": {
+              "en": "TiltTo"
+          },
+          "name": "TiltTo",
+          "request": {
+              "@type": "CommandPayload",
+              "displayName": {
+                  "en": "request"
+              },
+              "name": "request",
+              "schema": {
+                  "@type": "Object",
+                  "displayName": {
+                      "en": "Object"
+                  },
+                  "fields": [
+                      {
+                          "displayName": {
+                              "en": "angle"
+                          },
+                          "name": "angle",
+                          "schema": "double"
+                      }
+                  ]
+              }
+          },
+          "response": {
+              "@type": "CommandPayload",
+              "displayName": {
+                  "en": "response"
+              },
+              "name": "response",
+              "schema": {
+                  "@type": "Object",
+                  "displayName": {
+                      "en": "Object"
+                  },
+                  "fields": [
+                      {
+                          "displayName": {
+                              "en": "status"
+                          },
+                          "name": "status",
+                          "schema": "string"
+                      },
+                      {
+                          "displayName": {
+                              "en": "position"
+                          },
+                          "name": "position",
+                          "dtmi:dtdl:property:schema;2": {
+                              "@type": "Object",
+                              "displayName": {
+                                  "en": "Object"
+                              },
+                              "fields": [
+                                  {
+                                      "displayName": {
+                                          "en": "base"
+                                      },
+                                      "name": "base",
+                                      "schema": "double"
+                                  },
+                                  {
+                                      "displayName": {
+                                          "en": "elevation"
+                                      },
+                                      "name": "elevation",
+                                      "schema": "double"
+                                  }
+                              ]
+                          }
+                      },
+                      {
+                          "displayName": {
+                              "en": "focus"
+                          },
+                          "name": "focus",
+                          "schema": "double"
+                      },
+                      {
+                          "displayName": {
+                              "en": "zoom"
+                          },
+                          "name": "zoom",
+                          "schema": "double"
+                      },
+                      {
+                          "displayName": {
+                              "en": "ircut"
+                          },
+                          "name": "ircut",
+                          "schema": "boolean"
+                      }
+                  ]
+              }
+          }
+      },
+      {
+          "@id": "dtmi:HTXI:DeviceController:Nudge;1",
+          "@type": "Command",
+          "commandType": "synchronous",
+          "displayName": {
+              "en": "Nudge"
+          },
+          "name": "Nudge",
+          "request": {
+              "@type": "CommandPayload",
+              "displayName": {
+                  "en": "request"
+              },
+              "name": "request",
+              "schema": {
+                  "@type": "Object",
+                  "displayName": {
+                      "en": "Object"
+                  },
+                  "fields": [
+                      {
+                          "displayName": {
+                              "en": "direction"
+                          },
+                          "name": "direction",
+                          "dtmi:dtdl:property:schema;2": {
+                              "@type": "Enum",
+                              "displayName": {
+                                  "en": "Enum"
+                              },
+                              "enumValues": [
+                                  {
+                                      "displayName": {
+                                          "en": "Up"
+                                      },
+                                      "enumValue": "up",
+                                      "name": "up"
+                                  },
+                                  {
+                                      "displayName": {
+                                          "en": "Down"
+                                      },
+                                      "enumValue": "down",
+                                      "name": "down"
+                                  },
+                                  {
+                                      "displayName": {
+                                          "en": "Left"
+                                      },
+                                      "enumValue": "left",
+                                      "name": "left"
+                                  },
+                                  {
+                                      "displayName": {
+                                          "en": "Right"
+                                      },
+                                      "enumValue": "right",
+                                      "name": "right"
+                                  }
+                              ],
+                              "valueSchema": "string"
+                          }
+                      }
+                  ]
+              }
+          },
+          "response": {
+              "@type": "CommandPayload",
+              "displayName": {
+                  "en": "response"
+              },
+              "name": "response",
+              "schema": {
+                  "@type": "Object",
+                  "displayName": {
+                      "en": "Object"
+                  },
+                  "fields": [
+                      {
+                          "displayName": {
+                              "en": "status"
+                          },
+                          "name": "status",
+                          "schema": "string"
+                      },
+                      {
+                          "displayName": {
+                              "en": "position"
+                          },
+                          "name": "position",
+                          "dtmi:dtdl:property:schema;2": {
+                              "@type": "Object",
+                              "displayName": {
+                                  "en": "Object"
+                              },
+                              "fields": [
+                                  {
+                                      "displayName": {
+                                          "en": "base"
+                                      },
+                                      "name": "base",
+                                      "schema": "double"
+                                  },
+                                  {
+                                      "displayName": {
+                                          "en": "elevation"
+                                      },
+                                      "name": "elevation",
+                                      "schema": "double"
+                                  }
+                              ]
+                          }
+                      },
+                      {
+                          "displayName": {
+                              "en": "focus"
+                          },
+                          "name": "focus",
+                          "schema": "double"
+                      },
+                      {
+                          "displayName": {
+                              "en": "zoom"
+                          },
+                          "name": "zoom",
+                          "schema": "double"
+                      },
+                      {
+                          "displayName": {
+                              "en": "ircut"
+                          },
+                          "name": "ircut",
+                          "schema": "boolean"
+                      }
+                  ]
+              }
+          }
+      },
+      {
+          "@id": "dtmi:HTXI:DeviceController:elevation;1",
+          "@type": [
+              "Telemetry",
+              "Angle"
+          ],
+          "displayName": {
+              "en": "Elevation"
+          },
+          "name": "elevation",
+          "schema": "double",
+          "unit": "degreeOfArc"
+      },
+      {
+          "@id": "dtmi:HTXI:DeviceController:base;1",
+          "@type": [
+              "Telemetry",
+              "Angle"
+          ],
+          "displayName": {
+              "en": "Base Angle"
+          },
+          "name": "base",
+          "schema": "double",
+          "unit": "degreeOfArc"
+      },
+      {
+          "@id": "dtmi:HTXI:DeviceController:Focus;1",
+          "@type": "Command",
+          "commandType": "synchronous",
+          "displayName": {
+              "en": "Focus"
+          },
+          "name": "Focus",
+          "request": {
+              "@type": "CommandPayload",
+              "displayName": {
+                  "en": "request"
+              },
+              "name": "request",
+              "schema": {
+                  "@type": "Object",
+                  "displayName": {
+                      "en": "Object"
+                  },
+                  "fields": [
+                      {
+                          "displayName": {
+                              "en": "Value"
+                          },
+                          "name": "value",
+                          "schema": "double"
+                      }
+                  ]
+              }
+          },
+          "response": {
+              "@type": "CommandPayload",
+              "displayName": {
+                  "en": "response"
+              },
+              "name": "response",
+              "schema": {
+                  "@type": "Object",
+                  "displayName": {
+                      "en": "Object"
+                  },
+                  "fields": [
+                      {
+                          "displayName": {
+                              "en": "position"
+                          },
+                          "name": "position",
+                          "dtmi:dtdl:property:schema;2": {
+                              "@type": "Object",
+                              "displayName": {
+                                  "en": "Object"
+                              },
+                              "fields": [
+                                  {
+                                      "displayName": {
+                                          "en": "base"
+                                      },
+                                      "name": "base",
+                                      "schema": "double"
+                                  },
+                                  {
+                                      "displayName": {
+                                          "en": "elevation"
+                                      },
+                                      "name": "elevation",
+                                      "schema": "double"
+                                  }
+                              ]
+                          }
+                      },
+                      {
+                          "displayName": {
+                              "en": "zoom"
+                          },
+                          "name": "zoom",
+                          "schema": "double"
+                      },
+                      {
+                          "displayName": {
+                              "en": "focus"
+                          },
+                          "name": "focus",
+                          "schema": "double"
+                      },
+                      {
+                          "displayName": {
+                              "en": "ircut"
+                          },
+                          "name": "ircut",
+                          "schema": "boolean"
+                      },
+                      {
+                          "displayName": {
+                              "en": "status"
+                          },
+                          "name": "status",
+                          "schema": "string"
+                      }
+                  ]
+              }
+          }
+      },
+      {
+          "@id": "dtmi:HTXI:DeviceController:Zoom;1",
+          "@type": "Command",
+          "commandType": "synchronous",
+          "displayName": {
+              "en": "Zoom"
+          },
+          "name": "Zoom",
+          "request": {
+              "@type": "CommandPayload",
+              "displayName": {
+                  "en": "request"
+              },
+              "name": "request",
+              "schema": {
+                  "@type": "Object",
+                  "displayName": {
+                      "en": "Object"
+                  },
+                  "fields": [
+                      {
+                          "displayName": {
+                              "en": "Value"
+                          },
+                          "name": "value",
+                          "schema": "double"
+                      }
+                  ]
+              }
+          },
+          "response": {
+              "@type": "CommandPayload",
+              "displayName": {
+                  "en": "response"
+              },
+              "name": "response",
+              "schema": {
+                  "@type": "Object",
+                  "displayName": {
+                      "en": "Object"
+                  },
+                  "fields": [
+                      {
+                          "displayName": {
+                              "en": "status"
+                          },
+                          "name": "status",
+                          "schema": "string"
+                      },
+                      {
+                          "displayName": {
+                              "en": "position"
+                          },
+                          "name": "position",
+                          "dtmi:dtdl:property:schema;2": {
+                              "@type": "Object",
+                              "displayName": {
+                                  "en": "Object"
+                              },
+                              "fields": [
+                                  {
+                                      "displayName": {
+                                          "en": "base"
+                                      },
+                                      "name": "base",
+                                      "schema": "double"
+                                  },
+                                  {
+                                      "displayName": {
+                                          "en": "elevation"
+                                      },
+                                      "name": "elevation",
+                                      "schema": "double"
+                                  }
+                              ]
+                          }
+                      },
+                      {
+                          "displayName": {
+                              "en": "focus"
+                          },
+                          "name": "focus",
+                          "schema": "double"
+                      },
+                      {
+                          "displayName": {
+                              "en": "zoom"
+                          },
+                          "name": "zoom",
+                          "schema": "double"
+                      },
+                      {
+                          "displayName": {
+                              "en": "ircut"
+                          },
+                          "name": "ircut",
+                          "schema": "boolean"
+                      }
+                  ]
+              }
+          }
+      },
+      {
+          "@id": "dtmi:HTXI:DeviceController:IRCut;1",
+          "@type": "Command",
+          "commandType": "synchronous",
+          "displayName": {
+              "en": "IRCut"
+          },
+          "name": "IRCut",
+          "request": {
+              "@type": "CommandPayload",
+              "displayName": {
+                  "en": "request"
+              },
+              "name": "request",
+              "schema": {
+                  "@type": "Object",
+                  "displayName": {
+                      "en": "Object"
+                  },
+                  "fields": [
+                      {
+                          "displayName": {
+                              "en": "Value"
+                          },
+                          "name": "value",
+                          "schema": "boolean"
+                      }
+                  ]
+              }
+          },
+          "response": {
+              "@type": "CommandPayload",
+              "displayName": {
+                  "en": "response"
+              },
+              "name": "response",
+              "schema": {
+                  "@type": "Object",
+                  "displayName": {
+                      "en": "Object"
+                  },
+                  "fields": [
+                      {
+                          "displayName": {
+                              "en": "status"
+                          },
+                          "name": "status",
+                          "schema": "string"
+                      },
+                      {
+                          "displayName": {
+                              "en": "position"
+                          },
+                          "name": "position",
+                          "dtmi:dtdl:property:schema;2": {
+                              "@type": "Object",
+                              "displayName": {
+                                  "en": "Object"
+                              },
+                              "fields": [
+                                  {
+                                      "displayName": {
+                                          "en": "base"
+                                      },
+                                      "name": "base",
+                                      "schema": "double"
+                                  },
+                                  {
+                                      "displayName": {
+                                          "en": "elevation"
+                                      },
+                                      "name": "elevation",
+                                      "schema": "double"
+                                  }
+                              ]
+                          }
+                      },
+                      {
+                          "displayName": {
+                              "en": "focus"
+                          },
+                          "name": "focus",
+                          "schema": "double"
+                      },
+                      {
+                          "displayName": {
+                              "en": "zoom"
+                          },
+                          "name": "zoom",
+                          "schema": "double"
+                      },
+                      {
+                          "displayName": {
+                              "en": "ircut"
+                          },
+                          "name": "ircut",
+                          "schema": "boolean"
+                      }
+                  ]
+              }
+          }
       }
-    },
-    {
-      "@type": [
-        "Telemetry",
-        "Angle"
-      ],
-      "displayName": {
-        "en": "base"
-      },
-      "name": "base",
-      "schema": "double",
-      "unit": "degreeOfArc"
-    },
-    {
-      "@type": [
-        "Telemetry",
-        "Angle"
-      ],
-      "displayName": {
-        "en": "elevation"
-      },
-      "name": "elevation",
-      "schema": "double",
-      "unit": "degreeOfArc"
-    }
   ],
   "displayName": {
-    "en": "device controller"
+      "en": "device controller"
   },
   "@context": [
-    "dtmi:iotcentral:context;2",
-    "dtmi:dtdl:context;2"
+      "dtmi:iotcentral:context;2",
+      "dtmi:dtdl:context;2"
   ]
 }
