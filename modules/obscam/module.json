@@ -11,7 +11,8 @@
         "pi.core": "./Dockerfile.core",
         "pi.deps": "./Dockerfile.deps",
         "pi.base": "./Dockerfile.base",
-        "pi": "./Dockerfile.obs_cam"
+        "pi": "./Dockerfile.obs_cam",
+        "amd64": "./Dockerfile.amd64"
       }
     },
     "buildOptions": [],
