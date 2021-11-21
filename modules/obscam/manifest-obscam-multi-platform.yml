@@ -1,0 +1,11 @@
+image: innovationcontainerimages.azurecr.io/obs-cam:streamer
+manifests:
+  - image: innovationcontainerimages.azurecr.io/obs-cam:streamer-amd64
+    platform:
+      architecture: amd64
+      os: linux
+  - image: innovationcontainerimages.azurecr.io/obs-cam:streamer-pi
+    platform:
+      architecture: arm
+      os: linux
+      variant: v7
