@@ -1,0 +1,11 @@
+image: innovationcontainerimages.azurecr.io/device:telemetry
+manifests:
+  - image: innovationcontainerimages.azurecr.io/device:telemetry-amd64
+    platform:
+      architecture: amd64
+      os: linux
+  - image: innovationcontainerimages.azurecr.io/device:telemetry-arm32v7
+    platform:
+      architecture: arm
+      os: linux
+      variant: v7
