@@ -1,0 +1,28 @@
+FROM ubuntu:hirsute
+
+ARG DEBIAN_FRONTEND=noninteractive
+ENV TZ=America/Chicago
+RUN chmod 1777 /tmp
+RUN apt-get update && apt-get upgrade -y && apt-get install -y \
+    python3-pip libusb-1.0 gstreamer1.0-plugins-good gstreamer1.0-plugins-bad gstreamer1.0-plugins-ugly gstreamer1.0-nice gstreamer1.0-python3-plugin-loader \
+    gir1.2-gst-plugins-bad-1.0 python3-gst-1.0 python3-gst-1.0-dbg\ 
+    gstreamer1.0-fdkaac gstreamer1.0-libav gstreamer1.0-plugins-rtp gstreamer1.0-qt5 gstreamer1.0-rtsp gstreamer1.0-tools  \
+    libusrsctp1 ffmpeg \
+    && apt-get -y autoremove \
+    && rm -rf /var/lib/apt/lists/* 
+
+COPY requirements.txt ./
+
+RUN python3 -m pip install websockets &&  python3 -m pip install -r requirements.txt 
+
+ADD scripts /scripts
+ADD app /app
+WORKDIR /app
+
+ENV PYTHONUNBUFFERED=1
+CMD ["python3","app.py"]
+
+# Build time is about 20 min
+# docker buildx build --platform linux/amd64 --pull --rm -f "Dockerfile.amd64" -t obs-cam:streamer-amd64 "."
+# docker build  --pull --rm -f "Dockerfile.amd64" -t obs-cam:streamer-amd64 "."
+# docker run -d --network host --privileged --env-file env_file --name obs-cam obs-cam:streamer-amd64
