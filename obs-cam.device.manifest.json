@@ -68,7 +68,7 @@
             "status": "running",
             "restartPolicy": "always",
             "settings": {
-              "image": "***REMOVED***/obs-cam:controller-arm32v7",
+              "image": "***REMOVED***/obs-cam:controller",
               "createOptions": "{\"HostConfig\":{\"LogConfig\": {\"Type\": \"json-file\",\"Config\": {\"max-file\": \"5\",\"max-size\": \"10m\"}},\"Devices\": [{\"PathOnHost\": \"/dev/i2c-1\",\"PathInContainer\": \"/dev/i2c-1\",\"CgroupPermissions\": \"rwm\"}]}}"
             },
             "env": {}
