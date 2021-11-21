@@ -55,7 +55,7 @@ async def main():
                 if request.name in CommandProcessor.Commands():
                     last_action = datetime.datetime.now()
                     await CommandProcessor.Commands()[request.name](module_client, request)
-                    await send_telemetry()
+                    await send_telemetry(one_time_only=True)
                 else:
                     raise ValueError('Unknown command', request.name)
         except Exception as e:
@@ -76,7 +76,7 @@ async def main():
                         logger.info(f'{datetime.datetime.now()}: Device channels powered down for {name}')
             await asyncio.sleep(1)
 
-    async def send_telemetry():
+    async def send_telemetry(one_time_only:bool=False):
         # Define behavior for sending telemetry
         while True:
             try:
@@ -92,7 +92,10 @@ async def main():
             except Exception as e:
                 logger.error(f'{datetime.datetime.now()}: Exception during sending metrics: {e}')
             finally:
-                await asyncio.sleep(sampleRateInSeconds)       
+                if one_time_only: 
+                    break
+                else:
+                    await asyncio.sleep(sampleRateInSeconds)       
 
     async def twin_update_handler(patch):
         nonlocal sampleRateInSeconds, powerdown, env, last_action
