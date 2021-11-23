@@ -7,7 +7,8 @@
       "version": "controller",
       "platforms": {
         "arm32v7": "./Dockerfile.arm32v7",
-        "arm32v7.debug": "./Dockerfile.arm32v7.debug"
+        "arm32v7.debug": "./Dockerfile.arm32v7.debug",
+        "amd64": "./Dockerfile.amd64"
       }
     },
     "buildOptions": [],

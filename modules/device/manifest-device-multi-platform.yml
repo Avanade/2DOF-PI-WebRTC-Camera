@@ -1,0 +1,11 @@
+image: ***REMOVED***/device:telemetry
+manifests:
+  - image: ***REMOVED***/device:telemetry-amd64
+    platform:
+      architecture: amd64
+      os: linux
+  - image: ***REMOVED***/device:telemetry-arm32v7
+    platform:
+      architecture: arm
+      os: linux
+      variant: v7
