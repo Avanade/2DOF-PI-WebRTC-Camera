@@ -1,0 +1,11 @@
+image: innovationcontainerimages.azurecr.io/obs-cam:controller
+manifests:
+  - image: innovationcontainerimages.azurecr.io/obs-cam:controller-amd64
+    platform:
+      architecture: amd64
+      os: linux
+  - image: innovationcontainerimages.azurecr.io/obs-cam:controller-arm32v7
+    platform:
+      architecture: arm
+      os: linux
+      variant: v7

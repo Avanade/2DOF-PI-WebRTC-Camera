@@ -42,7 +42,7 @@
             "status": "running",
             "restartPolicy": "always",
             "settings": {
-              "image": "innovationcontainerimages.azurecr.io/device:pi-arm32v7",
+              "image": "innovationcontainerimages.azurecr.io/device:telemetry",
               "createOptions": "{\"NetworkingConfig\":{\"EndpointsConfig\": {\"host\": {}}},HostConfig:{\"Privileged\": true,\"NetworkMode\": \"host\",\"LogConfig\": {\"Type\": \"json-file\",\"Config\": {\"max-file\": \"5\",\"max-size\": \"10m\"}}}}"
             },
             "env": {}
@@ -53,7 +53,7 @@
             "status": "running",
             "restartPolicy": "always",
             "settings": {
-              "image": "innovationcontainerimages.azurecr.io/obs-cam:streamer-pi",
+              "image": "innovationcontainerimages.azurecr.io/obs-cam:streamer",
               "createOptions": "{\"NetworkingConfig\":{\"EndpointsConfig\": {\"host\": {}}},HostConfig:{\"Privileged\": true,\"NetworkMode\": \"host\",\"LogConfig\": {\"Type\": \"json-file\",\"Config\": {\"max-file\": \"5\",\"max-size\": \"10m\"}},\"Devices\": [{\"PathOnHost\": \"/dev/vchiq\",\"PathInContainer\": \"/dev/vchiq\",\"CgroupPermissions\": \"rwm\"}]}}"
             },
             "env": {
@@ -68,7 +68,7 @@
             "status": "running",
             "restartPolicy": "always",
             "settings": {
-              "image": "innovationcontainerimages.azurecr.io/obs-cam:controller-arm32v7",
+              "image": "innovationcontainerimages.azurecr.io/obs-cam:controller",
               "createOptions": "{\"HostConfig\":{\"LogConfig\": {\"Type\": \"json-file\",\"Config\": {\"max-file\": \"5\",\"max-size\": \"10m\"}},\"Devices\": [{\"PathOnHost\": \"/dev/i2c-1\",\"PathInContainer\": \"/dev/i2c-1\",\"CgroupPermissions\": \"rwm\"}]}}"
             },
             "env": {}
