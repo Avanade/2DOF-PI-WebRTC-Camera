@@ -111,7 +111,8 @@ async def main():
         logger.error(f'{datetime.datetime.now()}: Unexpected error {e}')
         raise
     finally:
-        await module_client.disconnect()
+        if module_client is not None:
+            await module_client.disconnect()
 
 if __name__ == "__main__":
     asyncio.run(main())
