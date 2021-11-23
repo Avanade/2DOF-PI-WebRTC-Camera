@@ -104,6 +104,8 @@
         "check_client_heartbeat": true,
         "missed_heartbeats_allowed": 3,
         "force_client_disconnect_duration": 0,
+        "cam_vendor_id": "0x0edc",
+        "cam_product_id": "0x2050",
         "settings": {
           "stream_id": "htxi-robot",
           "server": "wss://apibackup.obs.ninja:443",

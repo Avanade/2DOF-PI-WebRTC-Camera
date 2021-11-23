@@ -35,6 +35,8 @@ from azure.iot.device import MethodRequest
 from types import SimpleNamespace
 from typing import Dict, List
 from server import WebRTCClient
+from device_watcher import Device_Watcher
+from usb.core import find as finddev, show_devices
 
 gi.require_version('Gst', '1.0')
 gi.require_version('GstWebRTC', '1.0')
@@ -84,6 +86,10 @@ async def main(settings:SimpleNamespace):
         else:
             return False
         return True
+
+    def on_device_does_not_exist():
+        logger.warning(f'{datetime.datetime.now()}: Camera device either missing or malfunctioned. Exiting container to attempt recovery')
+        sys.exit(500)
 
     async def command_handler(request: MethodRequest):
         # Define behavior for handling commands
@@ -139,6 +145,8 @@ async def main(settings:SimpleNamespace):
         if 'missed_heartbeats_allowed' in patch: settings = SimpleNamespace(** merge(settings.__dict__, {'missed_heartbeats_allowed': patch['missed_heartbeats_allowed']}))
         if 'check_client_heartbeat' in patch: settings = SimpleNamespace(** merge(settings.__dict__, {'check_client_heartbeat': patch['check_client_heartbeat']}))
         if 'force_client_disconnect_duration' in patch: settings = SimpleNamespace(** merge(settings.__dict__, {'force_client_disconnect_duration': patch['force_client_disconnect_duration']}))
+        if 'cam_vendor_id' in patch: settings = SimpleNamespace(** merge(settings.__dict__, {'cam_vendor_id': int(patch['cam_vendor_id'], 16)}))
+        if 'cam_product_id' in patch: settings = SimpleNamespace(** merge(settings.__dict__, {'cam_product_id': int(patch['cam_product_id'], 16)}))
         if 'settings' in patch: 
             settings = SimpleNamespace(** merge(settings.__dict__, patch['settings']))
             build_gst_pipeline()
@@ -188,9 +196,23 @@ async def main(settings:SimpleNamespace):
             logger.error(f'{datetime.datetime.now()}: Invalid camera source: {settings.cam_source}. Use test|rpi_cam|v4l2src')
             sys.exit(1)
 
-        if(settings.stream_id is None):
+        if settings.stream_id is None:
             logger.error(f'{datetime.datetime.now()}: Missing stream id. Either set using the STREAM_ID envrionment variable, stream_id from IoTHub or the --streamid command line switch.')
             sys.exit(1)
+
+        if settings.cam_source == 'v4l2src' and settings.cam_vendor_id != 0 and settings.cam_product_id != 0:
+            logger.info(f"{datetime.datetime.now()}: Reset Camera USB Device {hex(settings.cam_vendor_id)}:{hex(settings.cam_product_id)} in case it has crashed and re-registered on /dev/videoX.")
+            dev = finddev(idVendor=settings.cam_vendor_id, idProduct=settings.cam_product_id)
+            if dev is not None:
+                dev.reset()
+            else:
+                logger.warning(f"{datetime.datetime.now()}: USB Device {hex(settings.cam_vendor_id)}:{hex(settings.cam_product_id)} was not found. Skipping reset attempt. Check the values in device twin or environment.")
+
+            dev_path = settings.cam_source_params.split('=')[1]
+            logger.info(f"{datetime.datetime.now()}: Start background watcher to detect camera on {dev_path}.")
+            watcher = Device_Watcher(path=dev_path, error_callback=on_device_does_not_exist, blocking=False, logging_level=logger.getEffectiveLevel())
+            watcher.start()
+
 
         logger.info(f'{datetime.datetime.now()}: Booting up using settings: {settings}')
         webrtc_client = WebRTCClient(pipeline=settings.gst_pipeline, stream_id=settings.stream_id, server=settings.server, stun_server=settings.stun_server)
@@ -245,7 +267,9 @@ if __name__ == "__main__":
         'monitoring_period': 30,
         'missed_heartbeats_allowed': 3,
         'check_client_heartbeat': True,
-        'force_client_disconnect_duration': 0
+        'force_client_disconnect_duration': 0, 
+        'cam_vendor_id': int('0x0', 16),
+        'cam_product_id': int('0x0', 16)
     })
 
     parser = argparse.ArgumentParser()
