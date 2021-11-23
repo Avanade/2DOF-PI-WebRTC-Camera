@@ -43,6 +43,7 @@ class ControllerFactory(object):
         instance = None
         if props["type"] == "PCA9865": instance = PCA9685.from_dict(props)
         elif props["type"] == "Arducam PTZ": instance = ArduCamPTZ.from_dict(props)
+        elif props["type"] == "None": pass
         else:
             raise Exception(f"Unknown controller type: {props['type']}")
 
