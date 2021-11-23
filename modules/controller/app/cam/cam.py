@@ -190,22 +190,23 @@ class Cam(object):
         for c in d:
             level = "INFO"
             controller = ControllerFactory.create(c['controller'])
-            if 'logging_level' in c['servos']: level = c['servos']['logging_level']
+            if controller is not None:
+                if 'logging_level' in c['servos']: level = c['servos']['logging_level']
 
-            tag = str(c['servos']['base']['channel']).zfill(2) + str(c['servos']['elevation']['channel']).zfill(2)
-            id = str(controller.address).zfill(6) + tag
-            if id in Cam._instances: Cam._instances[id].delete(False)
-            obj = cls(controller, c['servos']['base']['channel'], c['servos']['elevation']['channel'], False, level)
-            obj._base_servo = CamServo.from_dict(c['servos']['base'])
-            obj._elevation_servo = CamServo.from_dict(c['servos']['elevation'])
+                tag = str(c['servos']['base']['channel']).zfill(2) + str(c['servos']['elevation']['channel']).zfill(2)
+                id = str(controller.address).zfill(6) + tag
+                if id in Cam._instances: Cam._instances[id].delete(False)
+                obj = cls(controller, c['servos']['base']['channel'], c['servos']['elevation']['channel'], False, level)
+                obj._base_servo = CamServo.from_dict(c['servos']['base'])
+                obj._elevation_servo = CamServo.from_dict(c['servos']['elevation'])
 
-            if 'zoom' in c['servos'] and c['servos']['zoom']['type']!='None' and c['servos']['zoom']['channel']!=-1: obj._zoom_servo = CamServo.from_dict(c['servos']['zoom'])
-            if 'focus' in c['servos'] and c['servos']['focus']['type']!='None' and c['servos']['focus']['channel']!=-1: obj._focus_servo = CamServo.from_dict(c['servos']['focus'])
-            if 'ircut' in c['servos'] and c['servos']['ircut']['type']!='None' and c['servos']['ircut']['channel']!=-1: obj._ircut_servo = CamServo.from_dict(c['servos']['ircut'])
+                if 'zoom' in c['servos'] and c['servos']['zoom']['type']!='None' and c['servos']['zoom']['channel']!=-1: obj._zoom_servo = CamServo.from_dict(c['servos']['zoom'])
+                if 'focus' in c['servos'] and c['servos']['focus']['type']!='None' and c['servos']['focus']['channel']!=-1: obj._focus_servo = CamServo.from_dict(c['servos']['focus'])
+                if 'ircut' in c['servos'] and c['servos']['ircut']['type']!='None' and c['servos']['ircut']['channel']!=-1: obj._ircut_servo = CamServo.from_dict(c['servos']['ircut'])
 
-            obj._inc = c['servos']['angle_increment']
-            obj.initialize(False, False)
-            cls._instances[id] = obj
+                obj._inc = c['servos']['angle_increment']
+                obj.initialize(False, False)
+                cls._instances[id] = obj
         return cls._instances
 
     @classmethod

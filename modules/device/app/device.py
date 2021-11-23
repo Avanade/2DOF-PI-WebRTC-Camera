@@ -24,6 +24,7 @@ import psutil
 import platform
 import subprocess
 import os
+import distro
 import cpuinfo
 import requests
 import datetime
@@ -39,6 +40,8 @@ class Device():
         self.__get_latlong()
         self.__get_device_properties()
         self.__cpu_load_cache = [0,0]
+        self.__board = 'N/A'
+        self.__board_serial = 'N/A'
         _ = self.CPU_load
             # Warm up CPU load so the first telemetry value will be correct
         
@@ -84,7 +87,7 @@ class Device():
         self.__arch = platform.machine()
         self.__cpu_info = ci['brand_raw']
         self.__cpu_features = ', '.join(ci['flags'])
-        self.__os_version = ' '.join(platform.dist())
+        self.__os_version = ' '.join(distro.linux_distribution())
         self.__os_buildnumber = platform.platform()
         c = "cat /proc/cpuinfo"
         ai = subprocess.check_output(c, shell=True).strip().decode('ascii')
@@ -187,8 +190,11 @@ class Device():
         m = psutil.virtual_memory()
         d = psutil.disk_usage('/')
         up = self.__get_uptime_string()
+        temp = 0
+        if 'cpu_thermal' in t: temp = t['cpu_thermal'][0].current
+        if 'coretemp' in t: temp = t['coretemp'][0].current
         payload = {
-            'currentTemp': t['cpu_thermal'][0].current,
+            'currentTemp': temp,
             'memFree': round(m.available/1000000000, 3),
             'memUsage': m.percent,
             'cpuLoading': self.CPU_load,

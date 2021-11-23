@@ -81,14 +81,15 @@ async def main():
         while True:
             try:
                 names:List[str] = Cam.get_names()
-                cam:Cam = Cam.get(names[0])
-                telemetry = {
-                    'base': cam.position[0],
-                    'elevation': cam.position[1]
-                }
-                payload = json.dumps(telemetry)
-                logger.info(f'{datetime.datetime.now()}: Device telemetry: {payload}')
-                await module_client.send_message(payload)  
+                if len(names) > 0:
+                    cam:Cam = Cam.get(names[0])
+                    telemetry = {
+                        'base': cam.position[0],
+                        'elevation': cam.position[1]
+                    }
+                    payload = json.dumps(telemetry)
+                    logger.info(f'{datetime.datetime.now()}: Device telemetry: {payload}')
+                    await module_client.send_message(payload)  
             except Exception as e:
                 logger.error(f'{datetime.datetime.now()}: Exception during sending metrics: {e}')
             finally:
@@ -114,20 +115,21 @@ async def main():
         if 'position' in patch:
             position = patch['position']
             names:List[str] = Cam.get_names()
-            cam:Cam = Cam.get(names[0])
-            if env['started']:
-                x = cam.position[0] if 'base' not in position else position['base']
-                y = cam.position[1] if 'elevation' not in position else position['elevation']
-                cam.turn_on()
-                cam.position = (x, y)
-                cam.turn_off()
-                if (module_client is not None):
-                    await module_client.patch_twin_reported_properties({
-                        'position': {
-                            'base': cam.position[0],
-                            'elevation': cam.position[1]
-                        }
-                    })    
+            if len(names) > 0:
+                cam:Cam = Cam.get(names[0])
+                if env['started']:
+                    x = cam.position[0] if 'base' not in position else position['base']
+                    y = cam.position[1] if 'elevation' not in position else position['elevation']
+                    cam.turn_on()
+                    cam.position = (x, y)
+                    cam.turn_off()
+                    if (module_client is not None):
+                        await module_client.patch_twin_reported_properties({
+                            'position': {
+                                'base': cam.position[0],
+                                'elevation': cam.position[1]
+                            }
+                        })    
 
     try:
         logging.root.setLevel(logging.INFO)
@@ -162,7 +164,7 @@ async def main():
             cam = Cam.get(name)
             cam.reset()
             cam.turn_off()
-        Cam.reset()
+        Cam.controller_reset()
 
     except Exception as e:
         logger.error(f'{datetime.datetime.now()}: Unexpected error {e}')
