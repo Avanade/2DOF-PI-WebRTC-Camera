@@ -35,13 +35,13 @@ class Device():
     def __init__(self):
         self.__latitude = 0
         self.__longitude = 0
+        self.__board = 'N/A'
+        self.__board_serial = 'N/A'
         self.__get_ip()
         self.__get_public_ip()
         self.__get_latlong()
         self.__get_device_properties()
         self.__cpu_load_cache = [0,0]
-        self.__board = 'N/A'
-        self.__board_serial = 'N/A'
         _ = self.CPU_load
             # Warm up CPU load so the first telemetry value will be correct
         
