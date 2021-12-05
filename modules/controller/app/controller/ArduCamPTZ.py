@@ -80,12 +80,15 @@ opts = {
 class ArduCamPTZ(Controller):
     """ArduCam PTZ controller."""
  
-    def __init__(self, address: int = CHIP_I2C_ADDR, i2c = None, 
-                 frequency: int = 26500000, resolution: int = 4096,
-                 servo_frequency: int = 50, **kwargs):
+    def __init__(self, i2c_bus:int = 1, address:int = CHIP_I2C_ADDR, i2c = None, 
+                 frequency:int = 26500000, resolution:int = 4096,
+                 servo_frequency:int = 50, **kwargs):
         """__init__
 
         Initialize the ArduCamPTZ controller.
+
+        :param i2c_bus: The hardware bus to use. Corresponds to the number in /dev/i2c-xxx
+        :type i2c_address: integer
 
         :param address: The hardware address of the board. Generally 0x12 unless there is more
                         than one board.
@@ -110,7 +113,7 @@ class ArduCamPTZ(Controller):
         :type kwards: point to object array
 
         """
-        super().__init__(address, i2c, frequency, resolution, servo_frequency, **kwargs)
+        super().__init__(i2c_bus, address, i2c, frequency, resolution, servo_frequency, **kwargs)
         self.__i2c = ArduCamPTZ.__ensureI2C(i2c)
         logger.info("Registered controller on address %d" % address)
 
@@ -120,7 +123,7 @@ class ArduCamPTZ(Controller):
         if i2c is None:
             logger.info('Initializing SMBUS(I2C).')
             import smbus
-            i2c = smbus.SMBus(1)
+            i2c = smbus.SMBus(self._i2c_bus)
         return i2c
 
     @classmethod
@@ -131,6 +134,7 @@ class ArduCamPTZ(Controller):
         :type data: dictionary
         """
         instance = cls(
+            data['i2c_bus'],
             data['address'],
             None,
             data['frequency'],

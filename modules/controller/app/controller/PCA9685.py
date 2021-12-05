@@ -69,12 +69,15 @@ class PCA9685(Controller):
     """PCA9685 PWM LED/servo controller."""
 
  
-    def __init__(self, address: int = PCA9685_ADDRESS, i2c = None, 
+    def __init__(self, i2c_bus:int = 1, address: int = PCA9685_ADDRESS, i2c = None, 
                  frequency: int = 26500000, resolution: int = 4096,
                  servo_frequency: int = 50, **kwargs):
         """__init__
 
         Initialize the PCA9685.
+
+        :param i2c_bus: The hardware bus to use. Corresponds to the number in /dev/i2c-xxx
+        :type i2c_address: integer
 
         :param address: The hardware address of the board. Generally 0x40 unless there is more
                         than one board.
@@ -99,9 +102,9 @@ class PCA9685(Controller):
         :type kwards: point to object array
 
         """
-        super().__init__(address, i2c, frequency, resolution, servo_frequency, **kwargs)
+        super().__init__(i2c_bus, address, i2c, frequency, resolution, servo_frequency, **kwargs)
         i2c = PCA9685.__ensureI2C(i2c)
-        self._device = i2c.get_i2c_device(address, **kwargs)
+        self._device = i2c.get_i2c_device(address, self._i2c_bus, **kwargs)
         self.set_all_pwm(0, 0)
         self._device.write8(MODE2, OUTDRV)
         self._device.write8(MODE1, ALLCALL)
@@ -131,6 +134,7 @@ class PCA9685(Controller):
         :type data: dictionary
         """
         instance = cls(
+            i2c_bus=data['i2c_bus'],
             address=data['address'],
             i2c=None,
             frequency=data['frequency'],
