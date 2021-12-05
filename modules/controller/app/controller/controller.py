@@ -38,7 +38,7 @@ class Controller(ABC):
     """Abstract controller class."""
 
     @abstractmethod
-    def __init__(self, address: int = 0x0, i2c = None, 
+    def __init__(self, i2c_bus: int = 1, address: int = 0x0, i2c = None, 
                  frequency: int = 26500000, resolution: int = 4096,
                  servo_frequency: int = 50, **kwargs):
         """__init__
@@ -75,6 +75,7 @@ class Controller(ABC):
         self._address = address
         self._device = None
         self._warn_on_on_off = True
+        self._i2c_bus = i2c_bus
 
         logger.info("Created abstract controller on address %d" % address)
 
