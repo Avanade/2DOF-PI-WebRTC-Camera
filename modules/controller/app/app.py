@@ -129,7 +129,14 @@ async def main():
                                 'base': cam.position[0],
                                 'elevation': cam.position[1]
                             }
-                        })    
+                        })   
+        #
+        # Send a property update back to IoTC to confirm the new property settings, if this is not done, the properties will only 
+        # be considered desired, not reports and therefore not show up in Dashboard, etc. 
+        #
+        del patch['$version']
+        await module_client.patch_twin_reported_properties(patch)
+        logger.info(f'{datetime.datetime.now()}: Desired properties confirmed to reported properties.')  
 
     try:
         logging.root.setLevel(logging.INFO)
