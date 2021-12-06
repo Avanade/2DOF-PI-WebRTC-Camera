@@ -114,16 +114,16 @@ class ArduCamPTZ(Controller):
 
         """
         super().__init__(i2c_bus, address, i2c, frequency, resolution, servo_frequency, **kwargs)
-        self.__i2c = ArduCamPTZ.__ensureI2C(i2c)
+        self._i2c = ArduCamPTZ.__ensureI2C(i2c, self._i2c_bus)
         logger.info("Registered controller on address %d" % address)
 
     @classmethod
-    def __ensureI2C(cls, i2c=None):
+    def __ensureI2C(cls, i2c=None, i2c_bus=1):
         """Ensures I2C device interface"""
         if i2c is None:
             logger.info('Initializing SMBUS(I2C).')
             import smbus
-            i2c = smbus.SMBus(self._i2c_bus)
+            i2c = smbus.SMBus(i2c_bus)
         return i2c
 
     @classmethod
@@ -315,7 +315,7 @@ class ArduCamPTZ(Controller):
 
     def __read(self, reg_addr:int) -> int:
         """Reads the controller's registry value on a specified address"""
-        value = self.__i2c.read_word_data(self._address,reg_addr)
+        value = self._i2c.read_word_data(self._address,reg_addr)
         value = ((value & 0x00FF)<< 8) | ((value & 0xFF00) >> 8)
         return value
 
@@ -331,4 +331,4 @@ class ArduCamPTZ(Controller):
         """
         if value < 0: value = 0
         value = ((value & 0x00FF)<< 8) | ((value & 0xFF00) >> 8)
-        return self.__i2c.write_word_data(self._address,reg_addr,value)
+        return self._i2c.write_word_data(self._address,reg_addr,value)
