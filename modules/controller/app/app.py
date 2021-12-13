@@ -87,6 +87,9 @@ async def main():
                         'base': cam.position[0],
                         'elevation': cam.position[1]
                     }
+                    if cam.focus is not None: telemetry['focus_t'] = cam.focus
+                    if cam.zoom is not None: telemetry['zoom_t'] = cam.zoom
+                    if cam.ir_cut is not None: telemetry['ircut_t'] = cam.ir_cut
                     payload = json.dumps(telemetry)
                     logger.info(f'{datetime.datetime.now()}: Device telemetry: {payload}')
                     await module_client.send_message(payload)  
@@ -123,13 +126,38 @@ async def main():
                     cam.turn_on()
                     cam.position = (x, y)
                     cam.turn_off()
-                    if (module_client is not None):
-                        await module_client.patch_twin_reported_properties({
-                            'position': {
-                                'base': cam.position[0],
-                                'elevation': cam.position[1]
-                            }
-                        })   
+                    patch['position']['base'] = cam.position[0]
+                    patch['position']['elevation'] = cam.position[1] 
+                else:
+                    del patch['position']
+        if 'zoom' in patch:
+            if len(names) > 0:
+                cam:Cam = Cam.get(names[0])
+                if env['started']:
+                    cam.turn_on()
+                    cam.zoom = patch['zoom']
+                    cam.turn_off()
+                else:
+                    del patch['zoom']
+        if 'focus' in patch:
+            if len(names) > 0:
+                cam:Cam = Cam.get(names[0])
+                if env['started']:
+                    cam.turn_on()
+                    cam.focus = patch['focus']
+                    cam.turn_off()  
+                else:
+                    del patch['focus']          
+        if 'ircut' in patch:
+            if len(names) > 0:
+                cam:Cam = Cam.get(names[0])
+                if env['started']:
+                    cam.turn_on()
+                    cam.ir_cut = patch['ircut']
+                    cam.turn_off() 
+                else:
+                    del patch['ircut'] 
+
         #
         # Send a property update back to IoTC to confirm the new property settings, if this is not done, the properties will only 
         # be considered desired, not reports and therefore not show up in Dashboard, etc. 
