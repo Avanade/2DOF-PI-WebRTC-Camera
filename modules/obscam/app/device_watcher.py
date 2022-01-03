@@ -42,7 +42,11 @@ class Device_Watcher(object):
         self.__logger:logging.Logger = logging.getLogger('htxi.modules.camera.watcher')
         self.__logger.setLevel(logging_level)
 
-    def start(self):
+    def start(self, delay:int = 10):
+        #
+        # delay to avoid a false positive during startup.
+        #
+        time.sleep(delay)
         if not os.path.exists(self.__path):
             self.__on_deleted(None)
         else:
