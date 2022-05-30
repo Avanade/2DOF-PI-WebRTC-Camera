@@ -1,6 +1,10 @@
-``` This is still work in progress ```
-
 # 2DOF-PI-WebRTC-Camera
+![GitHub issues](https://img.shields.io/github/issues/Avanade/2DOF-PI-WebRTC-Camera)
+![GitHub](https://img.shields.io/github/license/Avanade/2DOF-PI-WebRTC-Camera)
+![GitHub Repo stars](https://img.shields.io/github/stars/Avanade/2DOF-PI-WebRTC-Camera?style=social)
+[![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-2.1-4baaaa.svg)](https://avanade.github.io/code-of-conduct/)
+[![Incubating InnerSource](https://img.shields.io/badge/Incubating-Ava--Maturity-%23FF5800?labelColor=yellow)](https://avanade.github.io/maturity-model/)
+
 
 This repository contais the code for a remote contolled two degrees of freedoom (pan and title) streaming camera using a raspberry pi and WebRTC. Streams can be access from anywhere and generally will not require any firewall ports to be opened. 
 
@@ -112,3 +116,10 @@ If you use IoTCentral instead of IoT Hub (IoTCentral uses IoT Hub under the hood
 </div>
  
 The url to the exported feed (using vdo.ninja) is avaialbe in both the device twin and the device telemetry. In the images above, I included the link on the dashboard for the camera. You can use that link in the browser or incorporate it into your OBS scence(s). 
+
+## Licensing
+2DOF-PI-WebRTC-Camera is available under the [MIT Licence](./LICENCE).
+
+## Who is Avanade?
+
+[Avanade](https://www.avanade.com) is the leading provider of innovative digital, cloud and advisory services, industry solutions and design-led experiences across the Microsoft ecosystem.
