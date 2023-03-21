@@ -32,7 +32,7 @@ The actual streaming is performed via dockerized container utilizing gstreamer a
 
 The python code is in ```modules->obscam->app``` folder. The obscam folder also contains the Dockerfiles to build the docker containers. For ease, you can pull the compiled container:
 ```
-    docker pull ***REMOVED***/obs-cam:streamer-pi
+    docker pull innovationcontainerimages.azurecr.io/obs-cam:streamer-pi
 ```
 if you do not want to use the containerized approach, you can build the support for gstreamer using the build scripts contains in the ```obscam -> scripts``` folder.
 

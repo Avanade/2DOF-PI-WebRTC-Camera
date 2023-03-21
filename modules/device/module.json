@@ -2,7 +2,7 @@
   "$schema-version": "0.0.1",
   "description": "module to collect properties and platform telemetry from the edge devices.",
   "image": {
-    "repository": "***REMOVED***/device",
+    "repository": "innovationcontainerimages.azurecr.io/device",
     "tag": {
       "version": "telemetry",
       "platforms": {

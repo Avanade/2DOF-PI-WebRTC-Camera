@@ -1,4 +1,4 @@
-FROM ***REMOVED***/obs-cam:streamer-pi.base
+FROM innovationcontainerimages.azurecr.io/obs-cam:streamer-pi.base
 
 RUN cd /usr/local/src && git clone https://github.com/libnice/libnice.git \
     && cd libnice/ \

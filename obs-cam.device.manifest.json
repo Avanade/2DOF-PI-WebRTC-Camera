@@ -10,9 +10,9 @@
             "loggingOptions": "",
             "registryCredentials": {
               "registryName": {
-                "address": "***REMOVED***",
-                "password": "***REMOVED***",
-                "username": "***REMOVED***"
+                "address": "",
+                "password": "",
+                "username": ""
               }
             }
           }
@@ -42,7 +42,7 @@
             "status": "running",
             "restartPolicy": "always",
             "settings": {
-              "image": "***REMOVED***/device:telemetry",
+              "image": "innovationcontainerimages.azurecr.io/device:telemetry",
               "createOptions": "{\"NetworkingConfig\":{\"EndpointsConfig\": {\"host\": {}}},HostConfig:{\"Privileged\": true,\"NetworkMode\": \"host\",\"LogConfig\": {\"Type\": \"json-file\",\"Config\": {\"max-file\": \"5\",\"max-size\": \"10m\"}}}}"
             },
             "env": {}
@@ -53,7 +53,7 @@
             "status": "running",
             "restartPolicy": "always",
             "settings": {
-              "image": "***REMOVED***/obs-cam:streamer",
+              "image": "innovationcontainerimages.azurecr.io/obs-cam:streamer",
               "createOptions": "{\"NetworkingConfig\":{\"EndpointsConfig\": {\"host\": {}}},HostConfig:{\"Privileged\": true,\"NetworkMode\": \"host\",\"LogConfig\": {\"Type\": \"json-file\",\"Config\": {\"max-file\": \"5\",\"max-size\": \"10m\"}},\"Devices\": [{\"PathOnHost\": \"/dev/vchiq\",\"PathInContainer\": \"/dev/vchiq\",\"CgroupPermissions\": \"rwm\"}]}}"
             },
             "env": {
@@ -68,7 +68,7 @@
             "status": "running",
             "restartPolicy": "always",
             "settings": {
-              "image": "***REMOVED***/obs-cam:controller",
+              "image": "innovationcontainerimages.azurecr.io/obs-cam:controller",
               "createOptions": "{\"HostConfig\":{\"Privileged\": true,\"LogConfig\": {\"Type\": \"json-file\",\"Config\": {\"max-file\": \"5\",\"max-size\": \"10m\"}},\"Devices\": [{\"PathOnHost\": \"/dev/i2c-1\",\"PathInContainer\": \"/dev/i2c-1\",\"CgroupPermissions\": \"rwm\"}]}}"
             },
             "env": {}
@@ -111,14 +111,14 @@
           "server": "wss://apibackup.obs.ninja:443",
           "stun_server": "stun://stun4.l.google.com:19302",
           "peer_url_base": "https://backup.obs.ninja",
-          "cam_source":"v4l2src",
+          "cam_source": "v4l2src",
           "cam_source_params": "device=/dev/video0",
           "custom_pipeline": "videoflip method=vertical-flip !",
           "fps": 10,
           "width": 1280,
           "height": 720,
           "caps": "video/x-raw,width={width},height={height},framerate={fps}/1"
-        }        
+        }
       }
     },
     "controller": {

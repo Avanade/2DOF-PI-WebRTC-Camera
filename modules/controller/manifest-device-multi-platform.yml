@@ -1,10 +1,10 @@
-image: ***REMOVED***/obs-cam:controller
+image: innovationcontainerimages.azurecr.io/obs-cam:controller
 manifests:
-  - image: ***REMOVED***/obs-cam:controller-amd64
+  - image: innovationcontainerimages.azurecr.io/obs-cam:controller-amd64
     platform:
       architecture: amd64
       os: linux
-  - image: ***REMOVED***/obs-cam:controller-arm32v7
+  - image: innovationcontainerimages.azurecr.io/obs-cam:controller-arm32v7
     platform:
       architecture: arm
       os: linux

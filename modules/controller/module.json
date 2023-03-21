@@ -2,7 +2,7 @@
   "$schema-version": "0.0.1",
   "description": "module to control the pan and tile of the camera",
   "image": {
-    "repository": "***REMOVED***/obs-cam",
+    "repository": "innovationcontainerimages.azurecr.io/obs-cam",
     "tag": {
       "version": "controller",
       "platforms": {

@@ -2,7 +2,7 @@
   "$schema-version": "0.0.1",
   "description": "module to stream camera feed via WebRTC.",
   "image": {
-    "repository": "***REMOVED***/obs-cam",
+    "repository": "innovationcontainerimages.azurecr.io/obs-cam",
     "tag": {
       "version": "streamer",
       "platforms": {

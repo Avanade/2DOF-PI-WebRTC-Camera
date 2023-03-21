@@ -1,10 +1,10 @@
-image: ***REMOVED***/obs-cam:streamer
+image: innovationcontainerimages.azurecr.io/obs-cam:streamer
 manifests:
-  - image: ***REMOVED***/obs-cam:streamer-amd64
+  - image: innovationcontainerimages.azurecr.io/obs-cam:streamer-amd64
     platform:
       architecture: amd64
       os: linux
-  - image: ***REMOVED***/obs-cam:streamer-pi
+  - image: innovationcontainerimages.azurecr.io/obs-cam:streamer-pi
     platform:
       architecture: arm
       os: linux
