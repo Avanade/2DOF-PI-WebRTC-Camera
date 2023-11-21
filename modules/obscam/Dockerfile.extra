@@ -1,47 +1,33 @@
 FROM innovationcontainerimages.azurecr.io/obs-cam:streamer-pi.core
 
-RUN export GST_PLUGIN_PATH=/usr/local/lib/gstreamer-1.0:/usr/lib/gstreamer-1.0 \
-    && export LD_LIBRARY_PATH=/usr/local/lib/:/usr/lib \
-    && cd /usr/local/src \
-    && wget https://gstreamer.freedesktop.org/src/gst-libav/gst-libav-1.18.4.tar.xz \
-    && tar -xf gst-libav-1.18.4.tar.xz \
-    && cd ./gst-libav-1.18.4 \
-    && mkdir build \
-    && cd ./build \
-    && meson --prefix=/usr -D buildtype=release -D gst_debug=false -D gtk_doc=disabled -D target=rpi -D header_path=/opt/vc/include/IL/ -D package-origin=https://gstreamer.freedesktop.org/src/gstreamer/ -D package-name="GStreamer 1.18.4 BLFS" .. \
-    && ninja -j4 \
-    && ninja install \
-    && ldconfig 
+## RUST ...  optional, adds native whip/whep support to gstreamer
+RUN cd /usr/local/src \
+    && export GST_PLUGIN_PATH=/usr/local/lib/gstreamer-1.0:/usr/lib/gstreamer-1.0 \
+    && export LD_LIBRARY_PATH=/usr/local/lib/ \
+    && curl https://sh.rustup.rs -sSf | bash -s -- -y --default-toolchain stable-arm-unknown-linux-gnueabihf
 
-RUN export GST_PLUGIN_PATH=/usr/local/lib/gstreamer-1.0:/usr/lib/gstreamer-1.0 \
-    && export LD_LIBRARY_PATH=/usr/local/lib/:/usr/lib \
-    && cd /usr/local/src \
-    && wget https://gstreamer.freedesktop.org/src/gst-rtsp-server/gst-rtsp-server-1.18.4.tar.xz \
-    && tar -xf gst-rtsp-server-1.18.4.tar.xz \
-    && cd ./gst-rtsp-server-1.18.4 \
-    && mkdir build \
-    && cd ./build \
-    && meson --prefix=/usr -D buildtype=release -D gst_debug=false -D gtk_doc=disabled -D package-origin=https://gstreamer.freedesktop.org/src/gstreamer/ -D package-name="GStreamer 1.18.4 BLFS" .. \
-    && ninja -j4 \
-    && ninja install \
-    && ldconfig
+ENV PATH="/root/.cargo/bin:${PATH}"
 
-RUN export GST_PLUGIN_PATH=/usr/local/lib/gstreamer-1.0:/usr/lib/gstreamer-1.0 \
-    && export LD_LIBRARY_PATH=/usr/local/lib/:/usr/lib \
-    && cd /usr/local/src \
-    && wget https://gstreamer.freedesktop.org/src/gst-omx/gst-omx-1.18.4.tar.xz \
-    && tar -xf gst-omx-1.18.4.tar.xz \
-    && cd ./gst-omx-1.18.4 \
-    && mkdir build \
-    && cd ./build \
-    && meson --prefix=/usr -D target=rpi -D header_path=/opt/vc/include/IL/ -Dbuildtype=release -Dgst_debug=false -Dgtk_doc=disabled -Dexamples=disabled -Dx11=disabled -Dglx=disabled -Dopengl=disabled -D package-origin=https://gstreamer.freedesktop.org/src/gstreamer/ -D package-name="GStreamer 1.18.4 BLFS" .. \
-    && ninja -j4 \
-    && ninja install \
-    && ldconfig 
+RUN cargo install cargo-c 
+        # slow, bloated, with many weak depedencies; careful
 
-# build takes about 2 minutes
-# docker buildx build --platform linux/arm/v7 --rm -f "Dockerfile.extra" -t obs-cam:pi.extra "."
-# docker build  --rm -f "Dockerfile.extra" -t obs-cam:pi.extra "."
-# docker run -dit --network host --name obs-cam.extra obs-cam:pi.extra /bin/bash
+RUN cd /usr/local/src \
+    && export GST_PLUGIN_PATH=/usr/local/lib/gstreamer-1.0:/usr/lib/gstreamer-1.0 \
+    && export LD_LIBRARY_PATH=/usr/local/lib/ \
+    && git clone https://gitlab.freedesktop.org/gstreamer/gst-plugins-rs.git \
+    && cd gst-plugins-rs \
+    && rm Cargo.toml \
+        # this one is bloated; we're going to delete some install options to speed things up and to avoid crashing things during the build
+    && curl -o Cargo.toml https://raw.githubusercontent.com/steveseguin/raspberry_ninja/main/raspberry_pi/Cargo.toml \
+    && cargo cinstall --prefix=./tmp  \
+        # whip/whep plugins for gstreamer 
+    && cp ./tmp/lib/gstreamer-1.0/* /usr/local/lib/arm-linux-gnueabihf/gstreamer-1.0 \
+    && cp ./tmp/lib/pkgconfig/* /usr/local/lib/arm-linux-gnueabihf/pkgconfig \
+    #&& cp ./tmp/lib/gstreamer-1.0/* /usr/local/lib/gstreamer-1.0 \
+    #&& cp ./tmp/lib/pkgconfig/* /usr/local/lib/pkgconfig \
+    && cd /usr/local/src && rm -rf gst-plugins-rs 
 
-
+# build takes about 60 minutes. The resulting image is about 4.35GB.
+# docker buildx build --platform linux/arm/v7 --pull --rm -f "Dockerfile.extra" -t innovationcontainerimages.azurecr.io/obs-cam:streamer-pi.extra "."
+# docker build  --pull --rm -f "Dockerfile.extra" -t innovationcontainerimages.azurecr.io/obs-cam:streamer-pi.extra "."
+# docker run -dit --network host --name obs-cam.extra innovationcontainerimages.azurecr.io/obs-cam:streamer-pi.extra /bin/bash

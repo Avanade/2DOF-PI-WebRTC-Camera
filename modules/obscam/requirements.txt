@@ -1,4 +1,4 @@
-azure-iot-device~=2.7.0
+azure-iot-device~=2.12.0
 jsonmerge
 pyusb
 watchdog

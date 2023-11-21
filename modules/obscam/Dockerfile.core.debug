@@ -13,8 +13,7 @@ RUN cd /usr/local/src \
     && meson --prefix=/usr/local -Dbuildtype=release -Dgst-plugins-base:gl_winsys=egl -Dgpl=enabled -Ddoc=disabled -Dtests=disabled -Dexamples=disabled -Dges=disabled -Dgst-examples=disabled -Ddevtools=disabled .. \
     && cd .. \
     && ninja -C build install -j4 \
-    && ldconfig \
-    && cd /usr/local/src && rm -rf gstreamer
+    && ldconfig 
 
 ## Vanilla LibCamera -- We run it after gstreamer so it detects it and installs the right plugins.
 RUN cd /usr/local/src \
@@ -24,10 +23,9 @@ RUN cd /usr/local/src \
     && cd libcamera \
     && meson setup build \
     && ninja -C build install -j4 \ 
-    && ldconfig \
-    && cd /usr/local/src && rm -rf libcamera
+    && ldconfig
 
-# build takes about 40 minutes. The resulting image is about 1.98GB.
+# build takes about 30 minutes.
 # docker buildx build --platform linux/arm/v7 --pull --rm -f "Dockerfile.core" -t innovationcontainerimages.azurecr.io/obs-cam:streamer-pi.core "."
 # docker build  --pull --rm -f "Dockerfile.core" -t innovationcontainerimages.azurecr.io/obs-cam:streamer-pi.core "."
 # docker run -dit --network host --name obs-cam.core innovationcontainerimages.azurecr.io/obs-cam:streamer-pi.core /bin/bash

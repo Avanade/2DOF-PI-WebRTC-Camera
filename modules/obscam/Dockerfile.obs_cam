@@ -3,7 +3,6 @@ FROM innovationcontainerimages.azurecr.io/obs-cam:streamer-pi.extra
 COPY requirements.txt ./
 RUN python3 -m pip install -r requirements.txt
 
-ADD scripts /scripts
 ADD app /app
 WORKDIR /app
 
@@ -11,6 +10,7 @@ ENV PYTHONUNBUFFERED=1
 CMD ["python3","app.py"]
 
 
-# docker buildx build --platform linux/arm/v7 --rm -f "Dockerfile.obs_cam" -t obs-cam:pi "."
-# docker build  --rm -f "Dockerfile.obs_cam" -t obs-cam:pi "."
-# docker run -d --network host --privileged --env-file env_file --device /dev/vchiq --device /dev/video0 --name obs-cam obs-cam:pi
+# build takes about 5 minutes.
+# docker buildx build --platform linux/arm/v7 --pull --rm -f "Dockerfile.obs_cam" -t innovationcontainerimages.azurecr.io/obs-cam:streamer-pi "."
+# docker build  --pull --rm -f "Dockerfile.obs_cam" -t innovationcontainerimages.azurecr.io/obs-cam:streamer-pi "."
+# docker run -dit --network host --name obs-cam.obs_cam innovationcontainerimages.azurecr.io/obs-cam:streamer-pi 

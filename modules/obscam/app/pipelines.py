@@ -58,5 +58,11 @@ tee name=videotee ! queue ! fakesink
 v4l2src device=/dev/video0 ! video/x-raw,width=1280,height=720,framerate=10/1 !  videoconvert ! queue ! vp8enc deadline=1 ! rtpvp8pay ! queue ! application/x-rtp,media=video,encoding-name=VP8,payload=97 ! videotee.
 ''' # test using usb source.
     # video only
+    
+rpi_cam_pipeline_new = '''
+rpicamsrc bitrate=2500000 ! video/x-h264,profile=constrained-baseline,width=1920,height=1080,framerate=(fraction)30/1,level=3.0 ! queue max-size-time=1000000000  max-size-bytes=10000000000 max-size-buffers=1000000  ! queue max-size-time=1000000000  max-size-bytes=10000000000 max-size-buffers=1000000 ! h264parse ! rtph264pay config-interval=-1 aggregate-mode=zero-latency ! application/x-rtp,media=video,encoding-name=H264,payload=96 ! tee name=videotee
+'''
+  
+
 
     

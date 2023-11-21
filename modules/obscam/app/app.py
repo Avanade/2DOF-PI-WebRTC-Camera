@@ -36,6 +36,7 @@ from types import SimpleNamespace
 from typing import Dict, List
 from server import WebRTCClient
 from device_watcher import Device_Watcher
+from packaging import version
 from usb.core import find as finddev, show_devices
 
 gi.require_version('Gst', '1.0')
@@ -55,10 +56,15 @@ tee name=audiotee ! queue ! fakesink
 audiotestsrc is-live=true wave=red-noise volume=0.2 ! queue ! opusenc ! rtpopuspay ! queue leaky=1 ! application/x-rtp,media=audio,encoding-name=OPUS,payload=96 ! audiotee.
 ''' # test source with video and audio.
 
+#rpi_cam_pipeline = '''
+#tee name=videotee ! queue ! fakesink
+#rpicamsrc {source_params} ! video/x-h264,profile=constrained-baseline,width={width},height={height},framerate={fps}/1,level=3.0 ! {custom}  queue ! h264parse ! rtph264pay config-interval=-1 !
+#queue ! application/x-rtp,media=video,encoding-name=H264,payload=96 ! videotee.
+#''' # raspberry pi camera needed; audio source removed to perserve simplicity.
+
 rpi_cam_pipeline = '''
-tee name=videotee ! queue ! fakesink
-rpicamsrc {source_params} ! video/x-h264,profile=constrained-baseline,width={width},height={height},framerate={fps}/1,level=3.0 ! {custom}  queue ! h264parse ! rtph264pay config-interval=-1 !
-queue ! application/x-rtp,media=video,encoding-name=H264,payload=96 ! videotee.
+rpicamsrc {source_params} ! video/x-h264,profile=constrained-baseline,width={width},height={height},framerate=(fraction){fps}/1,level=3.0 ! {custom} queue max-size-time=1000000000  max-size-bytes=10000000000 max-size-buffers=1000000 ! h264parse ! rtph264pay config-interval=-1 aggregate-mode=zero-latency ! 
+queue ! application/x-rtp,media=video,encoding-name=H264,payload=96 ! tee name=videotee
 ''' # raspberry pi camera needed; audio source removed to perserve simplicity.
 
 v4l_pipeline = '''
@@ -176,7 +182,7 @@ async def main(settings:SimpleNamespace):
     module_client:IoTHubModuleClient = None
     webrtc_client:WebRTCClient = None
     try:        
-        if not sys.version >= "3.5.3":
+        if not version.parse(f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}") >= version.parse("3.5.3"):
             logger.error(f'{datetime.datetime.now()}: This module requires python 3.5.3+. Current version of Python: {sys.version}.')
             raise Exception( 'This module requires python 3.5.3+. Current version of Python: %s' % sys.version )
 
@@ -221,6 +227,8 @@ async def main(settings:SimpleNamespace):
         webrtc_client.MissedHeartBeatsAllowed = settings.missed_heartbeats_allowed
         webrtc_client.CheckClientHeartbeat = settings.check_client_heartbeat
         webrtc_client.ForceClientDisconnectDuration = settings.force_client_disconnect_duration
+        webrtc_client.Bitrate = 4000
+        webrtc_client.BufferLatency = 200
         await webrtc_client.connect()
 
         # start send telemetry and receive commands        
@@ -252,7 +260,8 @@ if __name__ == "__main__":
 
     settings = SimpleNamespace(** {
         'stream_id': os.environ.get('STREAM_ID','htxi1234'),
-        'server': os.environ.get('SERVER', 'wss://apibackup.obs.ninja:443'),
+        'peer_url_base': os.environ.get('PEER_URL_BASE', 'https://vdo.ninja'),
+        'server': os.environ.get('SERVER', 'wss://wss.vdo.ninja:443'),
         'stun_server': os.environ.get('STUN_SERVER', 'stun://stun4.l.google.com:19302'),
         'cam_source': os.environ.get('CAM_SOURCE', 'test'),
         'cam_source_params': os.environ.get('CAM_SOURCE_PARAMS', 'device=/dev/video0'),
@@ -276,6 +285,7 @@ if __name__ == "__main__":
     parser.add_argument('--streamid', help='Stream ID of the peer to connect to')
     parser.add_argument('--server', help='Handshake server to use, eg: "wss://backupapi.obs.ninja:443"')
     parser.add_argument('--stun_server', help='STUN server used for ICE NAT translation, eg: "stun://stun4.l.google.com:19302"')
+    parser.add_argument('--peer_url_base', help='The base url for watching the stream, eg: "https://vdo.ninja"')    
     parser.add_argument('--cam_source', help='Video source type. Use test|rpi_cam|v4l2src.')
     parser.add_argument('--cam_source_params', help='Optional parameters for cam source. Currently only used for v4l2src to determine video device, i.e. device=/dev/video0')
     parser.add_argument('--custom_pipeline', help='Injection of custom gst pipeline plugins. Supplied plugins are injected between source and ! videoconvert ! to allow manipulation of the video source. If supplied, the value must terminate with a bang (!) Example: videoflip method=vertical-flip !')
@@ -288,6 +298,7 @@ if __name__ == "__main__":
 
     if(args.streamid is not None): settings.stream_id = args.streamid
     if(args.server is not None): settings.server = args.server
+    if(args.peer_url_base is not None): settings.peer_url_base = args.peer_url_base
     if(args.stun_server is not None): settings.stun_server = args.stun_server
     if(args.cam_source is not None): settings.cam_source = args.cam_source
     if(args.cam_source_params is not None): settings.cam_source_params = args.cam_source_params

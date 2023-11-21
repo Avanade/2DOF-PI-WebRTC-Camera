@@ -7,8 +7,7 @@ RUN cd /usr/local/src \
     && git checkout 0.64.1 \ 
         ## everything after this is version 1.x?
     && git fetch --all \
-    && python3 setup.py install \
-    && cd /usr/local/src && rm -rf meson
+    && python3 setup.py install
 
 ## AAC - optional (needed for rtmp only really)
 RUN cd /usr/local/src \
@@ -20,8 +19,7 @@ RUN cd /usr/local/src \
     && ./configure \
     && make -j4 \
     && make install \
-    && ldconfig \
-    && cd /usr/local/src && rm -rf ffmpeg-libraries
+    && ldconfig
 
 ## AV1 - optional
 RUN cd /usr/local/src \
@@ -32,8 +30,7 @@ RUN cd /usr/local/src \
     && meson .. \
     && /usr/local/bin/ninja && /usr/local/bin/ninja install \
     && ldconfig \
-    && libtoolize \
-    && cd /usr/local/src && rm -rf dav1d
+    && libtoolize
 
 ## HEVC - optional
 RUN cd /usr/local/src \
@@ -41,8 +38,7 @@ RUN cd /usr/local/src \
     && cd kvazaar \
     && ./autogen.sh \
     && ./configure \
-    && make -j4 && make install \
-    && cd /usr/local/src && rm -rf kvazaar
+    && make -j4 && make install
 
 ## Userland SCTP Stack
 RUN cd /usr/local/src \
@@ -52,28 +48,25 @@ RUN cd /usr/local/src \
     && meson build  --prefix=/usr/local \
     && /usr/local/bin/ninja -C build install -j4 \
     && libtoolize \
-    && ldconfig \
-    && cd /usr/local/src && rm -rf usrsctp
+    && ldconfig 
 
 ## SRT - optional
 RUN cd /usr/local/src \
-    && git clone --depth 1 https://github.com/Haivision/srt \
+    && git clone https://github.com/Haivision/srt \
     && cd srt \
     && ./configure \
     && make \
     && make install \
-    && ldconfig \
-    && cd /usr/local/src && rm -rf srt
+    && ldconfig
 
 ## Intel's Libva (an implementation for VA-API (Video Acceleration API))
 RUN cd /usr/local/src \
-    && git clone --depth 1 https://github.com/intel/libva.git \
+    && git clone https://github.com/intel/libva.git \
     && cd libva \
     && cd build \
     && meson .. -Dprefix=/usr \
     && ninja \
-    && ninja install \
-    && cd /usr/local/src && rm -rf libva
+    && ninja install 
 
 ## RPI userland camera support
 RUN cd /usr/local/src \
@@ -81,8 +74,7 @@ RUN cd /usr/local/src \
     && cd userland \ 
     && ./buildme \ 
     && echo "/opt/vc/lib" > /etc/ld.so.conf.d/00-vmcs.conf \
-    && ldconfig \
-    && cd /usr/local/src && rm -rf userland
+    && ldconfig 
 
 ## FFMpeg
 RUN cd /usr/local/src \
@@ -96,8 +88,7 @@ RUN cd /usr/local/src \
     && make -j4 \
     && libtoolize \
     && make install -j4 \
-    && ldconfig \
-    && cd /usr/local/src && rm -rf FFmpeg
+    && ldconfig
 
 ## GLIB 
 RUN cd /usr/local/src \
@@ -112,8 +103,7 @@ RUN cd /usr/local/src \
     && ninja \
     && ninja install \
     && ldconfig \
-    && libtoolize \
-    && cd /usr/local/src && rm -rf glib-2.78.0
+    && libtoolize 
 
 ## GObject 
 RUN cd /usr/local/src \
@@ -128,8 +118,7 @@ RUN cd /usr/local/src \
     && ninja \
     && ninja install \
     && ldconfig \
-    && libtoolize \
-    && cd /usr/local/src && rm -rf gobject-introspection-1.78.1
+    && libtoolize
 
 ## LibNice
 RUN cd /usr/local/src \
@@ -143,24 +132,22 @@ RUN cd /usr/local/src \
     && ninja \
     && ninja install \
     && ldconfig \
-    && libtoolize \
-    && cd /usr/local/src && rm -rf libnice
+    && libtoolize
 
 ## SRTP 
 RUN cd /usr/local/src \
     && export GST_PLUGIN_PATH=/usr/local/lib/gstreamer-1.0:/usr/lib/gstreamer-1.0 \
     && export LD_LIBRARY_PATH=/usr/local/lib/ \
-    && git clone --depth 1 https://github.com/cisco/libsrtp \
+    && git clone https://github.com/cisco/libsrtp \
     && cd libsrtp \
     && ./configure --enable-openssl --prefix=/usr/local \
     && make -j4 \
     && make shared_library \
     && make install -j4 \
     && ldconfig \
-    && libtoolize \
-    && cd /usr/local/src && rm -rf libsrtp
+    && libtoolize
 
-# build takes about 45 minutes. Resulting image size is 1.76GB
+# build takes about 45 minutes. The resulting image is about 2.9GB
 # docker buildx build --platform linux/arm/v7 --rm -f "Dockerfile.deps" -t innovationcontainerimages.azurecr.io/obs-cam:streamer-pi.deps "."
 # docker build  --rm -f "Dockerfile.deps" -t innovationcontainerimages.azurecr.io/obs-cam:streamer-pi.deps "."
 # docker run -dit --network host --name obs-cam.deps innovationcontainerimages.azurecr.io/obs-cam:streamer-pi.deps /bin/bash
