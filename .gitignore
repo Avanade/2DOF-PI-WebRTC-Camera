@@ -27,7 +27,7 @@ share/python-wheels/
 *.egg
 MANIFEST
 config/
-manifest-tool-linux-armv7
+manifest-tool-linux*
 
 # PyInstaller
 #  Usually these files are written by a python script from a template
