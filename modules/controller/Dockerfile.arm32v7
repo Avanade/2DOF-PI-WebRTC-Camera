@@ -10,3 +10,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends gcc make python
 COPY app /app
 WORKDIR /app
 CMD [ "python3", "-u", "./app.py" ]
+
+# build takes about 10 minutes.
+# docker buildx build --platform linux/arm/v7 --pull --rm -f "Dockerfile.arm32v7" -t innovationcontainerimages.azurecr.io/obs-cam:controller-arm32v7 "."
+# docker build  --pull --rm -f "Dockerfile.arm32v7" -t innovationcontainerimages.azurecr.io/obs-cam:controller-arm32v7 "."
+# docker run -dit --network host --name obs-cam innovationcontainerimages.azurecr.io/obs-cam:controller-arm32v7 
