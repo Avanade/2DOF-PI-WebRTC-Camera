@@ -3,6 +3,12 @@ FROM innovationcontainerimages.azurecr.io/obs-cam:streamer-pi.extra
 COPY requirements.txt ./
 RUN python3 -m pip install -r requirements.txt
 
+RUN echo "deb http://archive.raspberrypi.org/debian bullseye main" | tee -a /etc/apt/sources.list \
+    && apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 82B129927FA3303E \
+    && apt-get update && apt-get install -y libcamera-apps-lite udev \
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get -y autoremove
+
 ADD app /app
 WORKDIR /app
 

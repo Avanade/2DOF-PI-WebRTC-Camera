@@ -1,10 +1,12 @@
 FROM python:3.11-slim-bullseye
  
-RUN echo "deb http://www.deb-multimedia.org bullseye main" | tee -a /etc/apt/sources.list \ 
-    && apt-get update -oAcquire::AllowInsecureRepositories=true \
-    && apt-get install -y --allow-unauthenticated deb-multimedia-keyring gnupg \
+RUN apt-get update && apt-get -y install gnupg \
+    && echo "deb http://www.deb-multimedia.org bullseye main" | tee -a /etc/apt/sources.list \ 
     && echo "deb http://raspbian.raspberrypi.org/raspbian/ bullseye main contrib non-free rpi" | tee -a /etc/apt/sources.list \
-    && apt-key adv --keyserver keyserver.ubuntu.com --recv-keys AA8E81B4331F7F50 112695A0E562B32A 9165938D90FDDD2E \
+    && echo "deb http://archive.raspberrypi.org/debian bullseye main" | tee -a /etc/apt/sources.list \
+    && apt-key adv --keyserver keyserver.ubuntu.com --recv-keys AA8E81B4331F7F50 112695A0E562B32A 9165938D90FDDD2E 82B129927FA3303E 5C808C2B65558117 \
+    && apt-get update \
+    && apt-get install -y deb-multimedia-keyring \
     && rm -rf /var/lib/apt/lists/* \
     && apt-get -y autoremove
 
@@ -13,7 +15,7 @@ RUN apt-get update && apt-get upgrade -y && apt-get install -y \
     && apt-get remove python-gi-dev -y && apt-get install -y \ 
     python3-gi python3-pyqt5 ccache curl bison flex libasound2-dev libbz2-dev libcap-dev libdrm-dev libegl1-mesa-dev libfaad-dev libgl1-mesa-dev libgles2-mesa-dev libgmp-dev libgsl0-dev \
     libjpeg-dev libmms-dev libmpg123-dev libogg-dev liborc-0.4-dev libpango1.0-dev libpng-dev librtmp-dev libgif-dev pkg-config libmp3lame-dev libopencore-amrnb-dev libopencore-amrwb-dev \
-    libsidplay1-dev libx264-dev libusb-1.0 pulseaudio libpulse-dev libomxil-bellagio-dev libfreetype6-dev checkinstall fonts-freefont-ttf libcamera-dev libatk1.0-dev libatk-bridge2.0 libgdk-pixbuf2.0-dev libffi6 libffi-dev libselinux-dev libmount-dev \
+    libsidplay1-dev libx264-dev libusb-1.0 pulseaudio libpulse-dev libomxil-bellagio-dev libfreetype6-dev checkinstall fonts-freefont-ttf libcamera-dev libatk1.0-dev libatk-bridge2.0 libgdk-pixbuf2.0-dev libffi7 libffi-dev libselinux-dev libmount-dev \
     libelf-dev libdbus-1-dev autotools-dev automake autoconf autopoint libxml2-dev zlib1g-dev libglib2.0-dev gtk-doc-tools libgudev-1.0-dev libxt-dev libvorbis-dev libcdparanoia-dev \
     libtheora-dev libvisual-0.4-dev iso-codes libgtk-3-dev libraw1394-dev libiec61883-dev libavc1394-dev libv4l-dev libcairo2-dev libcaca-dev libspeex-dev libshout3-dev libaa1-dev libflac-dev libdv4-dev \
     libtag1-dev libwavpack-dev libsoup2.4-dev libcdaudio-dev libdc1394-22-dev ladspa-sdk libass-dev libdca-dev libdvdnav-dev libexempi-dev libexif-dev libgme-dev libgsm1-dev \
@@ -22,6 +24,7 @@ RUN apt-get update && apt-get upgrade -y && apt-get install -y \
     doxygen graphviz imagemagick libavcodec-dev libavdevice-dev libavfilter-dev libavformat-dev libavutil-dev libmp3lame-dev libopencore-amrwb-dev libsdl2-dev libsdl2-image-dev \
     libsdl2-mixer-dev libsdl2-net-dev libsdl2-ttf-dev libsnappy-dev libsoxr-dev libssh-dev libtool libv4l-dev libva-dev libvdpau-dev libvo-amrwbenc-dev libvorbis-dev libwebp-dev libx265-dev libxcb-shape0-dev \
     libxcb-shm0-dev libxcb-xfixes0-dev libxcb1-dev libxml2-dev lzma-dev texinfo libaom-dev libsrt-gnutls-dev zlib1g-dev libgmp-dev libzimg-dev git tclsh sudo wayland-protocols libxkbcommon-dev libepoxy-dev \
+    libcamera-apps-lite udev \
     && rm -rf /var/lib/apt/lists/* \
     && apt-get -y autoremove
 
@@ -227,6 +230,6 @@ ENV PYTHONUNBUFFERED=1
 CMD ["python3","app.py"]
 
 # build takes about 75 minutes. The resulting image is 1.98GB
-# docker buildx build --platform linux/arm/v7 --pull --rm -f "Dockerfile.full" -t innovationcontainerimages.azurecr.io/obs-cam:streamer-pi "."
-# docker build  --pull --rm -f "Dockerfile.core" -t innovationcontainerimages.azurecr.io/obs-cam:streamer-pi "."
-# docker run -dit --network host --name obs-cam.core innovationcontainerimages.azurecr.io/obs-cam:streamer-pi 
+# docker buildx build --platform linux/arm/v7 --pull --rm -f "Dockerfile" -t innovationcontainerimages.azurecr.io/obs-cam:streamer-pi "."
+# docker build  --pull --rm -f "Dockerfile" -t innovationcontainerimages.azurecr.io/obs-cam:streamer-pi "."
+# docker run -dit --network host --name obs-cam innovationcontainerimages.azurecr.io/obs-cam:streamer-pi 

@@ -56,15 +56,16 @@ tee name=audiotee ! queue ! fakesink
 audiotestsrc is-live=true wave=red-noise volume=0.2 ! queue ! opusenc ! rtpopuspay ! queue leaky=1 ! application/x-rtp,media=audio,encoding-name=OPUS,payload=96 ! audiotee.
 ''' # test source with video and audio.
 
-#rpi_cam_pipeline = '''
-#tee name=videotee ! queue ! fakesink
-#rpicamsrc {source_params} ! video/x-h264,profile=constrained-baseline,width={width},height={height},framerate={fps}/1,level=3.0 ! {custom}  queue ! h264parse ! rtph264pay config-interval=-1 !
-#queue ! application/x-rtp,media=video,encoding-name=H264,payload=96 ! videotee.
-#''' # raspberry pi camera needed; audio source removed to perserve simplicity.
-
 rpi_cam_pipeline = '''
 rpicamsrc {source_params} ! video/x-h264,profile=constrained-baseline,width={width},height={height},framerate=(fraction){fps}/1,level=3.0 ! {custom} queue max-size-time=1000000000  max-size-bytes=10000000000 max-size-buffers=1000000 ! h264parse ! rtph264pay config-interval=-1 aggregate-mode=zero-latency ! 
 queue ! application/x-rtp,media=video,encoding-name=H264,payload=96 ! tee name=videotee
+''' # raspberry pi camera needed; audio source removed to perserve simplicity.
+
+lib_cam_pipeline = '''
+libcamerasrc {source_params} ! video/x-raw,width=(int){width},height=(int){height},format=(string)RGB,framerate=(fraction){fps}/1 ! {custom} v4l2convert ! videorate ! 
+video/x-raw,format=I420 ! v4l2h264enc extra-controls="controls,video_bitrate=2500000;" qos=true name="encoder2" ! video/x-h264,level=(string)4 ! 
+queue max-size-time=1000000000  max-size-bytes=10000000000 max-size-buffers=1000000 ! h264parse  ! rtph264pay config-interval=-1 aggregate-mode=zero-latency ! 
+application/x-rtp,media=video,encoding-name=H264,payload=96 ! tee name=videotee
 ''' # raspberry pi camera needed; audio source removed to perserve simplicity.
 
 v4l_pipeline = '''
@@ -89,6 +90,7 @@ async def main(settings:SimpleNamespace):
         elif settings.cam_source == 'v4l2src': 
             settings.gst_pipeline = v4l_pipeline.format(caps=settings.caps, source_params=settings.cam_source_params, custom=settings.custom_pipeline)
             settings.gst_pipeline = settings.gst_pipeline.format(width=settings.width, height=settings.height, fps=settings.fps)
+        elif settings.cam_source == 'libcamera': settings.gst_pipeline = lib_cam_pipeline.format(source_params=settings.cam_source_params, custom=settings.custom_pipeline, width=settings.width, height=settings.height, fps=settings.fps)
         else:
             return False
         return True
@@ -199,7 +201,7 @@ async def main(settings:SimpleNamespace):
             await get_twin()
 
         if not build_gst_pipeline():
-            logger.error(f'{datetime.datetime.now()}: Invalid camera source: {settings.cam_source}. Use test|rpi_cam|v4l2src')
+            logger.error(f'{datetime.datetime.now()}: Invalid camera source: {settings.cam_source}. Use test|rpi_cam|libcamera|v4l2src')
             sys.exit(1)
 
         if settings.stream_id is None:

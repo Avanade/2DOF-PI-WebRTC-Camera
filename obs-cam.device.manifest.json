@@ -21,7 +21,7 @@
           "edgeAgent": {
             "type": "docker",
             "settings": {
-              "image": "mcr.microsoft.com/azureiotedge-agent:1.2",
+              "image": "mcr.microsoft.com/azureiotedge-agent:1.4.9",
               "createOptions": ""
             }
           },
@@ -30,7 +30,7 @@
             "status": "running",
             "restartPolicy": "always",
             "settings": {
-              "image": "mcr.microsoft.com/azureiotedge-hub:1.2",
+              "image": "mcr.microsoft.com/azureiotedge-hub:1.4.9",
               "createOptions": "{\"HostConfig\":{\"PortBindings\":{\"443/tcp\":[{\"HostPort\":\"443\"}],\"5671/tcp\":[{\"HostPort\":\"5671\"}],\"8883/tcp\":[{\"HostPort\":\"8883\"}]}}}"
             }
           }
@@ -42,7 +42,7 @@
             "status": "running",
             "restartPolicy": "always",
             "settings": {
-              "image": "innovationcontainerimages.azurecr.io/device:telemetry",
+              "image": "innovationcontainerimages.azurecr.io/device:telemetry-1.0.664",
               "createOptions": "{\"NetworkingConfig\":{\"EndpointsConfig\": {\"host\": {}}},HostConfig:{\"Privileged\": true,\"NetworkMode\": \"host\",\"LogConfig\": {\"Type\": \"json-file\",\"Config\": {\"max-file\": \"5\",\"max-size\": \"10m\"}}}}"
             },
             "env": {}
@@ -54,7 +54,7 @@
             "restartPolicy": "always",
             "settings": {
               "image": "innovationcontainerimages.azurecr.io/obs-cam:streamer",
-              "createOptions": "{\"NetworkingConfig\":{\"EndpointsConfig\": {\"host\": {}}},HostConfig:{\"Privileged\": true,\"NetworkMode\": \"host\",\"LogConfig\": {\"Type\": \"json-file\",\"Config\": {\"max-file\": \"5\",\"max-size\": \"10m\"}},\"Devices\": [{\"PathOnHost\": \"/dev/vchiq\",\"PathInContainer\": \"/dev/vchiq\",\"CgroupPermissions\": \"rwm\"}]}}"
+              "createOptions": "{\"NetworkingConfig\":{\"EndpointsConfig\": {\"host\": {}}},\"HostConfig\":{\"Privileged\": true, \"GroupAdd\": [\"video\"], \"Binds\": [\"/run/udev:/run/udev\"] ,\"NetworkMode\": \"host\",\"LogConfig\": {\"Type\": \"json-file\",\"Config\": {\"max-file\": \"5\",\"max-size\": \"10m\"}},\"Devices\": [{\"PathOnHost\": \"/dev/vchiq\",\"PathInContainer\": \"/dev/vchiq\",\"CgroupPermissions\": \"rwm\"}]}}"
             },
             "env": {
               "USE_AZ_IOT": {
@@ -108,9 +108,9 @@
         "cam_product_id": "0x2050",
         "settings": {
           "stream_id": "htxi-robot",
-          "server": "wss://apibackup.obs.ninja:443",
+          "server": "wss://wss.vdo.ninja:443",
+          "peer_url_base": "https://vdo.ninja/alpha",
           "stun_server": "stun://stun4.l.google.com:19302",
-          "peer_url_base": "https://backup.obs.ninja",
           "cam_source": "v4l2src",
           "cam_source_params": "device=/dev/video0",
           "custom_pipeline": "videoflip method=vertical-flip !",

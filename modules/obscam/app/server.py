@@ -357,10 +357,17 @@ class WebRTCClient:
             try:
                 ret = await self.__loop()
             except Exception as e:
-                 self.__logger.error(f"{datetime.datetime.now()}: Error in main loop: {e}. Restarting loop.")
-                 self.__restart = True
+                self.__logger.error(f"{datetime.datetime.now()}: Error in main loop: {e}. Restarting loop.")
+                try:
+                    self.__remove_all_clients()
+                    await self.__conn.close()
+                except Exception as e: 
+                    pass
+                self.__connected = False
+                self.__conn = None
+                self.__restart = True
+                self.connect()
 
-        
         return ret
     #
     # endregion
