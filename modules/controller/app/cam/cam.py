@@ -106,7 +106,8 @@ class Cam(object):
         self._zoom = -1
         self._focus = -1
         self._ircut = False
-        self.__setup_defaults(base_channel, elevation_channel)
+        self.__setup_defaults(base_channel, elevation_channel, initialize)
+
 
         if initialize: self.initialize()
         Cam._instances[self._id] = self
@@ -121,7 +122,7 @@ class Cam(object):
     # region private methods
     #
 
-    def __setup_defaults(self, base_channel: int, elevation_channel: int):
+    def __setup_defaults(self, base_channel: int, elevation_channel: int, set_angles: bool=False):
         """__setup_defaults
         Setup defaults for the servos based on static defaults.
         
@@ -130,14 +131,18 @@ class Cam(object):
 
         :param elevation_channel: The channel for the camera elevation servo.
         :type elevation_channel: int
+        
+        :param set_angles: sets the angles for the servos to the defaults. Use with care
+        :type set_angels: bool
         """
         # defaults for servos
         self._base_servo = CamServo(base_channel, MiuzeiSG90Attributes(), 
                                 Cam.base_neutral_angle, Cam.base_min_angle, Cam.base_max_angle, Cam.base_trim)
         self._elevation_servo = CamServo(elevation_channel, MiuzeiSG90Attributes(), 
                                 Cam.elevation_neutral_angle, Cam.elevation_min_angle, Cam.elevation_max_angle, Cam.elevation_trim)
-        self._base_angle = self._base_servo.neutral + self._base_servo.trim
-        self._elevation_angle = self._elevation_servo.neutral + self._elevation_servo.trim
+        if set_angles:
+            self._base_angle = self._base_servo.neutral
+            self._elevation_angle = self._elevation_servo.neutral
 
     #
     # endregion
@@ -191,11 +196,17 @@ class Cam(object):
             level = "INFO"
             controller = ControllerFactory.create(c['controller'])
             if controller is not None:
+                pos: Tuple[float, float] = (0.0, 0.0)
+                restore_position: bool = False
                 if 'logging_level' in c['servos']: level = c['servos']['logging_level']
 
                 tag = str(c['servos']['base']['channel']).zfill(2) + str(c['servos']['elevation']['channel']).zfill(2)
                 id = str(controller.address).zfill(6) + tag
-                if id in Cam._instances: Cam._instances[id].delete(False)
+                if id in Cam._instances: 
+                    # need to preserve position information here so we can restore it later
+                    pos = Cam._instances[id].position
+                    restore_position = True
+                    Cam._instances[id].delete(False)
                 obj = cls(controller, c['servos']['base']['channel'], c['servos']['elevation']['channel'], False, level)
                 obj._base_servo = CamServo.from_dict(c['servos']['base'])
                 obj._elevation_servo = CamServo.from_dict(c['servos']['elevation'])
@@ -205,7 +216,12 @@ class Cam(object):
                 if 'ircut' in c['servos'] and c['servos']['ircut']['type']!='None' and c['servos']['ircut']['channel']!=-1: obj._ircut_servo = CamServo.from_dict(c['servos']['ircut'])
 
                 obj._inc = c['servos']['angle_increment']
-                obj.initialize(False, False)
+                obj.initialize(not restore_position, False)
+                if(restore_position):         
+                    # need to reset position here...
+                    # we should not use the setter here but instead directly set the private variables to restore the state
+                    obj._base_angle = pos[0]
+                    obj._elevation_angle = pos[1]
                 cls._instances[id] = obj
         return cls._instances
 
@@ -374,7 +390,8 @@ class Cam(object):
             elif self._elevation_angle > y:
                 self._elevation_angle -= self._inc
                 if self._elevation_angle < y: self._elevation_angle = y
-           
+
+            self._logger.info(f"attempting ({self._base_angle + self._base_servo.trim}, {self._elevation_angle + self._elevation_servo.trim})")           
             self._controller.set_servo_angle(self._base_servo.channel, self._base_angle + self._base_servo.trim)
             self._controller.set_servo_angle(self._elevation_servo.channel, self._elevation_angle + self._elevation_servo.trim)
 
@@ -477,8 +494,9 @@ class Cam(object):
         :param reset: True to reset to servos to the neutral position
         :type reset: bool
 
-        :param shutoff: True to shutoff the servors 
+        :param shutoff: True to shutoff the servos 
         :type shutoff: bool
+        
         """ 
         self._controller.add_servo(self._base_servo.channel, self._base_servo.attributes, False)
         self._controller.add_servo(self._elevation_servo.channel, self._elevation_servo.attributes, False)
@@ -486,11 +504,11 @@ class Cam(object):
         if self._focus_servo is not None: self._controller.add_servo(self._focus_servo.channel, self._focus_servo.attributes, False)      
         if self._ircut_servo is not None: self._controller.add_servo(self._ircut_servo.channel, self._ircut_servo.attributes, False)
 
-        self._base_angle = self._base_servo.neutral + self._base_servo.trim
-        self._elevation_angle = self._elevation_servo.neutral + self._elevation_servo.trim
-        if self._zoom_servo: self._zoom = self._zoom_servo.neutral + self._zoom_servo.trim
-        if self._focus_servo: self._focus = self._focus_servo.neutral + self._focus_servo.trim
-        if self._ircut_servo: self._ircut = self._ircut_servo.neutral + self._ircut_servo.trim
+        self._base_angle = self._base_servo.neutral - self._base_servo.trim
+        self._elevation_angle = self._elevation_servo.neutral - self._elevation_servo.trim
+        if self._zoom_servo: self._zoom = self._zoom_servo.neutral - self._zoom_servo.trim
+        if self._focus_servo: self._focus = self._focus_servo.neutral - self._focus_servo.trim
+        if self._ircut_servo: self._ircut = self._ircut_servo.neutral - self._ircut_servo.trim
         
         if reset: self.reset()
         if shutoff: self.turn_off()
@@ -555,8 +573,9 @@ class Cam(object):
         
         # move to neutral angles      
         self.turn_on()
-        self.position  = (self._base_servo.neutral, self._elevation_servo.neutral) 
-        self._logger.info("cam reset to (%f, %f)", self._base_servo.neutral, self._elevation_servo.neutral )
+        pos = self.position
+        self.position  = (self._base_servo.neutral - self._base_servo.trim, self._elevation_servo.neutral - self._elevation_servo.trim) 
+        self._logger.info(f"cam reset from ({pos[0]}, {pos[1]}) to ({self._base_servo.neutral - self._base_servo.trim}, {self._elevation_servo.neutral - self._elevation_servo.trim})")
         time.sleep(0.3)
         self.turn_off()
 
@@ -593,12 +612,12 @@ class Cam(object):
         self.turn_on()
         self.position = (self._base_angle, self._elevation_angle)
         while True: 
-            self.position = (self._base_servo.max, self._elevation_angle)
-            self.position = (self._base_servo.max, self._elevation_servo.min)   
-            self.position = (self._base_servo.min, self._elevation_servo.min)
-            self.position = (self._base_servo.min, self._elevation_servo.max)
-            self.position = (self._base_servo.neutral, self._elevation_servo.max)
-            self.position = (self._base_servo.neutral, self._elevation_servo.neutral)
+            self.position = (self._base_servo.max - self._base_servo.trim, self._elevation_angle)
+            self.position = (self._base_servo.max - self._base_servo.trim, self._elevation_servo.min - self._elevation_servo.trim)   
+            self.position = (self._base_servo.min - self._base_servo.trim, self._elevation_servo.min - self._elevation_servo.trim)
+            self.position = (self._base_servo.min - self._base_servo.trim, self._elevation_servo.max - self._elevation_servo.trim)
+            self.position = (self._base_servo.neutral - self._base_servo.trim, self._elevation_servo.max - self._elevation_servo.trim)
+            self.position = (self._base_servo.neutral - self._base_servo.trim, self._elevation_servo.neutral - self._elevation_servo.trim)
             if not repeat: break    
         self.turn_off()        
 

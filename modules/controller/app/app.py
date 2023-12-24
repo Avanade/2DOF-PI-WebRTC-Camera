@@ -120,9 +120,11 @@ async def main():
                 if env['started']:
                     x = cam.position[0] if 'base' not in position else position['base']
                     y = cam.position[1] if 'elevation' not in position else position['elevation']
+                    logger.info(f"Attempting to move camera {cam.name} to {x}:{y}")
                     cam.turn_on()
                     cam.position = (x, y)
                     cam.turn_off()
+                    logger.info(f"Move of camera {cam.name} to {x}:{y} complete.")
                     if (module_client is not None):
                         await module_client.patch_twin_reported_properties({
                             'position': {

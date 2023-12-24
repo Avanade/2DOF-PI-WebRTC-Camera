@@ -59,6 +59,9 @@
             "env": {
               "USE_AZ_IOT": {
                 "value": "TRUE"
+              },
+              "UDEV": {
+                "value": "on"
               }
             }
           },

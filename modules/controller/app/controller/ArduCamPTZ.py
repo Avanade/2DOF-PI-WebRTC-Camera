@@ -258,7 +258,6 @@ class ArduCamPTZ(Controller):
             angle = int(servo.angle)
             self.__write(channel, angle)
             self.__waitingForFree()
-            time.sleep(0.01)
 
         if channel in (0x0, 0x1):
             servo = self._servos[channel]
@@ -301,7 +300,7 @@ class ArduCamPTZ(Controller):
         """Determines whether the controller is currently busy executing operations"""
         return self.__read(BUSY_REG_ADDR) != 0
 
-    def __waitingForFree(self, timeout:int=5, period:float=0.01):
+    def __waitingForFree(self, timeout:int=5, period:float=0.001):
         """
         Waits until all pending operations currently queued with the controller are complete.
         """
