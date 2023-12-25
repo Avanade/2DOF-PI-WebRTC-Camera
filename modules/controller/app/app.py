@@ -85,7 +85,10 @@ async def main():
                     cam:Cam = Cam.get(names[0])
                     telemetry = {
                         'base': cam.position[0],
-                        'elevation': cam.position[1]
+                        'elevation': cam.position[1],
+                        'zoom_t': cam.zoom,
+                        'focus_t': cam.focus,
+                        'ircut_t': cam.ir_cut
                     }
                     payload = json.dumps(telemetry)
                     logger.info(f'{datetime.datetime.now()}: Device telemetry: {payload}')
@@ -112,26 +115,48 @@ async def main():
             env = merge(env, patch['environment'])
             boot_environment(env, True if 'started' not in env else False)
             env['started'] = True
-        if 'position' in patch:
-            position = patch['position']
+        if 'position' in patch or 'focus' in patch or 'zoom' in patch or 'ircut' in patch:
             names:List[str] = Cam.get_names()
             if len(names) > 0:
                 cam:Cam = Cam.get(names[0])
                 if env['started']:
-                    x = cam.position[0] if 'base' not in position else position['base']
-                    y = cam.position[1] if 'elevation' not in position else position['elevation']
-                    logger.info(f"Attempting to move camera {cam.name} to {x}:{y}")
-                    cam.turn_on()
-                    cam.position = (x, y)
-                    cam.turn_off()
-                    logger.info(f"Move of camera {cam.name} to {x}:{y} complete.")
-                    if (module_client is not None):
-                        await module_client.patch_twin_reported_properties({
-                            'position': {
+                    __p = {}
+                    if 'position' in patch:
+                        position = patch['position']
+                        __x = cam.position[0] if 'base' not in position else position['base']
+                        __y = cam.position[1] if 'elevation' not in position else position['elevation']
+                        logger.info(f"Attempting to move camera {cam.name} to {__x}:{__y}")
+                        cam.turn_on()
+                        cam.position = (__x, __y)
+                        cam.turn_off()
+                        logger.info(f"Move of camera {cam.name} to {__x}:{__y} complete.")
+                        __p['position'] = {
                                 'base': cam.position[0],
                                 'elevation': cam.position[1]
                             }
-                        })   
+                    if 'zoom' in patch:
+                        __z = patch['zoom']
+                        cam.turn_on()
+                        cam.zoom = __z
+                        cam.turn_off()
+                        logger.info(f"Zoom camera {cam.name} to {__z}")
+                        __p['zoom'] = cam.zoom
+                    if 'focus' in patch:
+                        __f = patch['focus']
+                        cam.turn_on()
+                        cam.focus = __f
+                        cam.turn_off()
+                        logger.info(f"Focus camera {cam.name} to {__f}")
+                        __p['focus'] = cam.focus
+                    if 'ircut' in patch:
+                        __z = patch['ircut']
+                        cam.turn_on()
+                        cam.ir_cut = __z
+                        cam.turn_off()
+                        logger.info(f"Set ircut on {cam.name} to {__z}")
+                        __p['ircut'] = cam.ir_cut
+                    if (module_client is not None):
+                        await module_client.patch_twin_reported_properties(__p)   
         #
         # Send a property update back to IoTC to confirm the new property settings, if this is not done, the properties will only 
         # be considered desired, not reports and therefore not show up in Dashboard, etc. 
