@@ -70,7 +70,7 @@ application/x-rtp,media=video,encoding-name=H264,payload=96 ! tee name=videotee
 
 v4l_pipeline = '''
 tee name=videotee ! queue ! fakesink
-v4l2src {source_params} ! {caps} ! {custom} videoconvert ! queue ! vp8enc deadline=1 target-bitrate={bitrate} ! rtpvp8pay ! queue ! application/x-rtp,media=video,encoding-name=VP8,payload=97 ! videotee.
+v4l2src {source_params} ! {caps} ! {custom} videoconvert ! queue ! vp8enc deadline=1 target-bitrate={bitrate} name="encoder" ! rtpvp8pay ! queue ! application/x-rtp,media=video,encoding-name=VP8,payload=97 ! videotee.
 ''' # usb camera needed; audio source removed to perserve simplicity.
 
 async def main(settings:SimpleNamespace):
