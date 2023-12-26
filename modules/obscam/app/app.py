@@ -57,20 +57,20 @@ audiotestsrc is-live=true wave=red-noise volume=0.2 ! queue ! opusenc ! rtpopusp
 ''' # test source with video and audio.
 
 rpi_cam_pipeline = '''
-rpicamsrc {source_params} ! video/x-h264,profile=constrained-baseline,width={width},height={height},framerate=(fraction){fps}/1,level=3.0 ! {custom} queue max-size-time=1000000000  max-size-bytes=10000000000 max-size-buffers=1000000 ! h264parse ! rtph264pay config-interval=-1 aggregate-mode=zero-latency ! 
+rpicamsrc name="encoder" {source_params} ! video/x-h264,profile=constrained-baseline,width={width},height={height},framerate=(fraction){fps}/1,level=3.0 ! {custom} queue max-size-time=1000000000  max-size-bytes=10000000000 max-size-buffers=1000000 ! h264parse ! rtph264pay config-interval=-1 aggregate-mode=zero-latency ! 
 queue ! application/x-rtp,media=video,encoding-name=H264,payload=96 ! tee name=videotee
 ''' # raspberry pi camera needed; audio source removed to perserve simplicity.
 
 lib_cam_pipeline = '''
 libcamerasrc {source_params} ! video/x-raw,width=(int){width},height=(int){height},format=(string)RGB,framerate=(fraction){fps}/1 ! {custom} v4l2convert ! videorate ! 
-video/x-raw,format=I420 ! v4l2h264enc extra-controls="controls,video_bitrate=2500000;" qos=true name="encoder2" ! video/x-h264,level=(string)4 ! 
+video/x-raw,format=I420 ! v4l2h264enc extra-controls="controls,video_bitrate={bitrate};" qos=true name="encoder" ! video/x-h264,level=(string)4 ! 
 queue max-size-time=1000000000  max-size-bytes=10000000000 max-size-buffers=1000000 ! h264parse  ! rtph264pay config-interval=-1 aggregate-mode=zero-latency ! 
 application/x-rtp,media=video,encoding-name=H264,payload=96 ! tee name=videotee
 ''' # raspberry pi camera needed; audio source removed to perserve simplicity.
 
 v4l_pipeline = '''
 tee name=videotee ! queue ! fakesink
-v4l2src {source_params} ! {caps} ! {custom} videoconvert ! queue ! vp8enc deadline=1 ! rtpvp8pay ! queue ! application/x-rtp,media=video,encoding-name=VP8,payload=97 ! videotee.
+v4l2src {source_params} ! {caps} ! {custom} videoconvert ! queue ! vp8enc deadline=1 target-bitrate={bitrate} ! rtpvp8pay ! queue ! application/x-rtp,media=video,encoding-name=VP8,payload=97 ! videotee.
 ''' # usb camera needed; audio source removed to perserve simplicity.
 
 async def main(settings:SimpleNamespace):
@@ -86,11 +86,13 @@ async def main(settings:SimpleNamespace):
         Build the gst pipeline based ont he settings. 
         """
         if settings.cam_source == 'test': settings.gst_pipeline = test_video_pipeline.format(custom=settings.custom_pipeline)
-        elif settings.cam_source == 'rpi_cam': settings.gst_pipeline = rpi_cam_pipeline.format(source_params=settings.cam_source_params, custom=settings.custom_pipeline, width=settings.width, height=settings.height, fps=settings.fps)
+        elif settings.cam_source == 'rpi_cam': 
+            settings.gst_pipeline = rpi_cam_pipeline.format(source_params=settings.cam_source_params, custom=settings.custom_pipeline, width=settings.width, height=settings.height, fps=settings.fps)
+            settings.gst_pipeline = settings.gst_pipeline.format(bitrate=settings.bit_rate)
         elif settings.cam_source == 'v4l2src': 
-            settings.gst_pipeline = v4l_pipeline.format(caps=settings.caps, source_params=settings.cam_source_params, custom=settings.custom_pipeline)
+            settings.gst_pipeline = v4l_pipeline.format(caps=settings.caps, source_params=settings.cam_source_params, custom=settings.custom_pipeline, bitrate=settings.bit_rate)
             settings.gst_pipeline = settings.gst_pipeline.format(width=settings.width, height=settings.height, fps=settings.fps)
-        elif settings.cam_source == 'libcamera': settings.gst_pipeline = lib_cam_pipeline.format(source_params=settings.cam_source_params, custom=settings.custom_pipeline, width=settings.width, height=settings.height, fps=settings.fps)
+        elif settings.cam_source == 'libcamera': settings.gst_pipeline = lib_cam_pipeline.format(source_params=settings.cam_source_params, custom=settings.custom_pipeline, width=settings.width, height=settings.height, fps=settings.fps, bitrate=settings.bit_rate)
         else:
             return False
         return True
@@ -129,6 +131,10 @@ async def main(settings:SimpleNamespace):
                     "connected_clients": webrtc_client.Clients,
                     "stream_url_t": f"{settings.peer_url_base}/?password=false&view={settings.stream_id}"
                 }
+                if(webrtc_client.EffectiveBitRate != -1): telemetry["bit_rate"] = webrtc_client.EffectiveBitRate
+                if(webrtc_client.RoundTripTime != -1): telemetry["roundtrip_time"] = webrtc_client.RoundTripTime
+                if(webrtc_client.PacketLoss != -100): telemetry["packet_loss"] = webrtc_client.PacketLoss
+
                 payload = json.dumps(telemetry)
                 logger.info(f'{datetime.datetime.now()}: Device telemetry: {payload}')
                 await module_client.send_message(payload)  
@@ -168,6 +174,7 @@ async def main(settings:SimpleNamespace):
             webrtc_client.MissedHeartBeatsAllowed = settings.missed_heartbeats_allowed
             webrtc_client.CheckClientHeartbeat = settings.check_client_heartbeat
             webrtc_client.ForceClientDisconnectDuration = settings.force_client_disconnect_duration
+            webrtc_client.Bitrate = settings.bit_rate
         if 'logging_level' in patch: 
             logging.root.setLevel(patch['logging_level'])
             logger.setLevel(patch['logging_level'])
@@ -229,7 +236,7 @@ async def main(settings:SimpleNamespace):
         webrtc_client.MissedHeartBeatsAllowed = settings.missed_heartbeats_allowed
         webrtc_client.CheckClientHeartbeat = settings.check_client_heartbeat
         webrtc_client.ForceClientDisconnectDuration = settings.force_client_disconnect_duration
-        webrtc_client.Bitrate = 4000
+        webrtc_client.Bitrate = settings.bit_rate
         webrtc_client.BufferLatency = 200
         await webrtc_client.connect()
 
@@ -268,6 +275,7 @@ if __name__ == "__main__":
         'cam_source': os.environ.get('CAM_SOURCE', 'test'),
         'cam_source_params': os.environ.get('CAM_SOURCE_PARAMS', 'device=/dev/video0'),
         'custom_pipeline': os.environ.get('CUSTOM_PIPELINE', ''),
+        'bit_rate': int(os.environ.get('BIT_RATE', '4000')),
         'fps': int(os.environ.get('FPS', '10')),
         'width': int(os.environ.get('WIDTH', '1280')),
         'height': int(os.environ.get('HEIGHT', '720')),

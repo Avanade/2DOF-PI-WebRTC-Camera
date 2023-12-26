@@ -34,6 +34,7 @@ gi.require_version('GstWebRTC', '1.0')
 gi.require_version('GstSdp', '1.0')
 from gi.repository import Gst, GstSdp, GstWebRTC, GObject
 from typing import Dict, List
+from types import SimpleNamespace
 try:
     from gi.repository import GLib
 except:
@@ -86,8 +87,17 @@ class WebRTCClient:
         self.__force_client_disconnect_duration = 0
         self.__clients = {}
         self.__bitrate:int = 4000
-        self.__max_bitrate:int = self.__bitrate * 1.5
+        self.__bitrate_qos:int = self.__bitrate
         self.__buffer:int = 200
+        self.__packet_loss = -1
+        self.__bitrate_effective = -1
+        self.__stats_cache = SimpleNamespace(** {
+            'packet_loss': 0,
+            'packets_sent': 0,
+            'bytes_sent': 0,
+            'timestamp': 0
+        })
+        self.__roundtrip_time = -1
         
         self.__restart:bool = False
         self.__eventloop:asyncio.BaseEventLoop = asyncio.get_event_loop()
@@ -117,7 +127,7 @@ class WebRTCClient:
         :type bitrate    int
         """
         self.__bitrate = bitrate
-        self.__max_bitrate = bitrate * 1.5    
+        self.__bitrate_qos = bitrate    
     
     @property
     def BufferLatency(self) -> int:
@@ -181,6 +191,13 @@ class WebRTCClient:
         """
         self.__client_monitoring_period = period
 
+    @property 
+    def EffectiveBitRate(self) -> int:
+        '''
+        Gets the effective bit rate for the transmission in kbps
+        '''
+        return self.__bitrate_effective
+
     @property
     def ForceClientDisconnectDuration(self) -> int:
         """
@@ -234,6 +251,13 @@ class WebRTCClient:
         """
         self.__missed_heartbeats_allowed = val
 
+    @property 
+    def PacketLoss(self) -> float:
+        '''
+        Gets the packetloss in percent
+        '''
+        return self.__packet_loss * 100
+
     @property
     def Pipeline(self) -> str:
         """
@@ -253,7 +277,14 @@ class WebRTCClient:
                 # we do not start the pipeline here. 
                 # the pipeline will automatically start when the first client 
                 # tries to re-connect
-            
+
+    @property 
+    def RoundTripTime(self) -> float:
+        '''
+        Gets roundtrip time in ms
+        '''
+        return self.__roundtrip_time
+
     @property 
     def StreamId(self) -> str:
         """
@@ -312,7 +343,8 @@ class WebRTCClient:
             self.__stun_server = stun_server
             self.__remove_all_clients()
             self.__restart = True
-            self.__eventloop.create_task(self.connect())
+            self.__eventloop.create_task(self.connect()) 
+    
     #
     # endregion
     #
@@ -366,7 +398,7 @@ class WebRTCClient:
                 self.__connected = False
                 self.__conn = None
                 self.__restart = True
-                self.connect()
+                await self.connect()
 
         return ret
     #
@@ -447,9 +479,10 @@ class WebRTCClient:
         client['created'] = datetime.datetime.now()
         
         client['encoder'] = self.__pipe.get_by_name('encoder')
-        if client['encoder'] is not None:
-            self.__bitrate = int(client['encoder'].get_property('bitrate'))
-            self.__max_bitrate = self.__bitrate * 1.5
+                    # The element named encoder is used to manage qos where applicable. For rpi_cam sources
+                    # pri_cam itself is the encoder through hardware and therefore should have a name='encoder' property. The bitrate
+                    # property will be used. For libcam and v4l2 actual encoders like v4l2h264enc or vp8/9 should 
+                    # be used for that purpose
         
         self.__logger.info(f"{datetime.datetime.now()}: Wiring new webrtcbin to control structure")
         webrtc.connect('on-ice-candidate', self.__send_ice_candidate_message)
@@ -837,11 +870,13 @@ class WebRTCClient:
             self.__logger.info(f"{datetime.datetime.now()}: Incoming SDP - data channel")
             if msg['description']['type'] == "offer":
                 self.__handle_sdp(uuid, msg['description'])
+                
         elif 'bitrate' in msg:
-            self.__logger.info(f"{datetime.datetime.now()}: {msg}")
+            self.__logger.info(f"{datetime.datetime.now()}: incoming bitrate request {msg['bitrate']}")
             if self.__clients[uuid]['encoder'] and msg['bitrate']:
                 self.__logger.info(f"{datetime.datetime.now()}: Trying to change bitrate...")
                 self.__clients[uuid]['encoder'].set_property('bitrate', int(msg['bitrate'])*1000)
+
         else:
             self.__logger.info(f"{datetime.datetime.now()}: Unhandled message on channel {uuid}: {msg_raw[:150]}")
 
@@ -923,38 +958,40 @@ class WebRTCClient:
         uuid = webrtcbin.name
         promise.wait()
         stats = promise.get_reply()
-        stats = stats.to_string()
-        stats = stats.replace("\\", "")
-        stats = stats.split("fraction-lost=(double)")
-        if (len(stats)>1):
-            stats = stats[1].split(",")[0]
-            self.__logger.info(f"{datetime.datetime.now()}: Packet loss: {stats}")
-            
-            if self.__clients[uuid]['encoder']is not None: return
-            if self.__bitrate == 0: return
-            stats = float(stats)
-            if (stats > 0.01):
-                bitrate = self.__bitrate * 0.9
-                if bitrate < self.__max_bitrate * 0.2: bitrate = self.__max_bitrate * 0.2
-                elif bitrate > self.__max_bitrate * 0.8: bitrate = self.__bitrate * 0.9
-                if self.__bitrate != bitrate: 
-                    self.__bitrate = bitrate
-                    self.__logger.info(f"{datetime.datetime.now()}: Trying to reduce bitrate to {int(bitrate)}")
-                    try:
-                        if self.__clients[uuid]['encoder']is not None: self.__clients[uuid]['encoder'].set_property('bitrate', int(bitrate))
-                    except Exception as e:
-                        self.__logger.error(f"{datetime.datetime.now()}: {e}")
-            elif (stats < 0.003):
-                bitrate = self.__bitrate * 1.05
-                if bitrate>self.__max_bitrate: bitrate = self.__max_bitrate
-                elif bitrate * 1.2 < self.__max_bitrate: bitrate = self.__bitrate*1.05
-                if self.__bitrate != bitrate: 
-                    self.__bitrate = bitrate
-                    self.__logger.info(f"{datetime.datetime.now()}: Trying to increase bitrate to {int(bitrate)}")
-                    try:
-                        if self.__clients[uuid]['encoder']is not None: self.__clients[uuid]['encoder'].set_property('bitrate', int(bitrate))
-                    except Exception as e:
-                        self.__logger.error(f"{datetime.datetime.now()}: {e}")
+        
+        packet_loss = -1
+        packets_sent = -1
+        bytes_sent = -1
+        timestamp = -1
+        
+        if stats.has_field('codec-stats-sink_0'):
+            if stats.get_value('codec-stats-sink_0').has_field('ssrc'):
+                ssrc = stats.get_value('codec-stats-sink_0').get_value('ssrc')
+                if stats.has_field(f'rtp-remote-inbound-stream-stats_{ssrc}'):
+                    rtpriss = stats.get_value(f'rtp-remote-inbound-stream-stats_{ssrc}')
+                    packet_loss = rtpriss.get_value('packets-lost')
+                    timestamp = rtpriss.get_value('timestamp')
+                    self.__roundtrip_time = rtpriss.get_value('round-trip-time') * 1000
+                    
+                if stats.has_field(f'rtp-outbound-stream-stats_{ssrc}'):    
+                    rtposs = stats.get_value(f'rtp-outbound-stream-stats_{ssrc}')
+                    packets_sent = rtposs.get_value('packets-sent')  
+                    bytes_sent = rtposs.get_value('bytes-sent')         
+
+        if packet_loss != -1 and packets_sent != -1:
+            self.__packet_loss = (packet_loss - self.__stats_cache.packet_loss)/(packets_sent - self.__stats_cache.packets_sent)             
+            self.__stats_cache.packet_loss = packet_loss
+            self.__stats_cache.packets_sent = packets_sent
+              
+        if timestamp != -1 and bytes_sent != -1:
+            time_difference = (timestamp - self.__stats_cache.timestamp)
+            self.__bitrate_effective = int((bytes_sent - self.__stats_cache.bytes_sent) / time_difference) * 8 
+                # this is no kbps....
+            self.__stats_cache.timestamp = timestamp
+            self.__stats_cache.bytes_sent = bytes_sent
+
+        self.__update_bit_rate(uuid, self.__packet_loss)
+        
 
     def __send_ice_candidate_message(self, webrtcbin:Gst.Element, mlineindex:int, candidate:str):
         """
@@ -1016,8 +1053,7 @@ class WebRTCClient:
         self.__logger.info(f"{datetime.datetime.now()}: Stopping pipeline")
         for client_id in self.__clients.copy(): self.__remove_client(client_id)        
         self.__logger.info(f"{datetime.datetime.now()}: Pipeline stopped")
-
-            
+        
     def __remove_client(self, client_id:str):
         """
         Removes a client and dismantels the webrtcbin scaffold associated with the client. 
@@ -1060,6 +1096,55 @@ class WebRTCClient:
                 if self.__pipe.get_state(0)[1] is Gst.State.NULL: break
                 time.sleep(0.1)
             self.__pipe = None
+            
+    def __update_bit_rate(self, uuid: str, packet_loss_value: float) -> None:
+        """
+        Adjusts the bit rate on the channel based on reported packet loss. The effective range of the bit rate goes from
+        20% of self.__bitrate to 200% of self.__bitrate. The resulting qos bitrate is stored in self.__bitrate_qos
+        
+        :param uuid      The ID of the pipeline
+        :type uudi       str
+        
+        :param packet_loss_value    The observed packet loss
+        :type packet_loss_value     float
+        
+        """  
+        if self.__clients[uuid]['encoder'] is None: return
+        if self.__bitrate == 0: return
+        should_update = False
+        if (packet_loss_value > 0.01):
+            # for packet less greater than 1%, we will start reducing the bit rate by 10%, limited on the downside to 
+            # 20% of the target bit rate 
+            bitrate = self.__bitrate_qos * 0.9
+            if bitrate < self.__bitrate * 0.2: pass
+            else:
+                self.__logger.info(f"{datetime.datetime.now()}: Trying to reduce bitrate from {int(self.__bitrate_qos)} to {int(bitrate)}")
+                self.__bitrate_qos = bitrate
+                should_update = True
+
+        elif (packet_loss_value < 0.003):
+            # for packet loss less than 0.3%, we will start increasing the bit rate by 5%, limited on the upside to 100% of the original
+            # bit rate
+            bitrate = self.__bitrate_qos * 1.05
+            if bitrate > self.__bitrate * 2: pass
+            else: 
+                self.__logger.info(f"{datetime.datetime.now()}: Trying to increase bitrate from {int(self.__bitrate_qos)} to {int(bitrate)}")
+                self.__bitrate_qos = bitrate
+                should_update = True
+                    
+        if should_update:
+            try:
+                if self.__clients[uuid]['encoder'].find_property('bitrate') is not None: self.__clients[uuid]['encoder'].set_property('bitrate', int(self.__bitrate_qos))
+                elif self.__clients[uuid]['encoder'].find_property('target-bitrate') is not None: self.__clients[uuid]['encoder'].set_property('target-bitrate', int(self.__bitrate_qos))
+                elif self.__clients[uuid]['encoder'].find_property('extra-controls') is not None: 
+                    extra_controls = self.__clients[uuid]['encoder'].get_property("extra-controls")
+                    extra_controls_structure = Gst.Structure.new_from_string(extra_controls.to_string())
+                    extra_controls_structure.set_value("video_bitrate", int(self.__bitrate_qos))
+                    self.__clients[uuid]['encoder'].set_property("extra-controls", extra_controls_structure)
+                else: 
+                    self.__logger.warning(f"{datetime.datetime.now()}: The gst encoder element {self.__clients[uuid]['encoder'].g_type_instance.g_class.g_type.name} is not currently supported for qos.")
+            except Exception as e:
+                self.__logger.error(f"{datetime.datetime.now()}: {e}")        
             
     #
     # endregion
