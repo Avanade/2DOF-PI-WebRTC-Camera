@@ -1088,7 +1088,7 @@ class WebRTCClient:
         else:
             self.__logger.warning(f"{datetime.datetime.now()}: Cound not find client {client_id} for removal")
             
-        if self.__pipe is not None and len(self.__clients) == 0:
+        if self.__pipe is not None and self.Clients == 0:
             self.__logger.info(f"{datetime.datetime.now()}: All clients have disconnected, stopping pipeline")
             if self.__pipe.set_state(Gst.State.NULL) == Gst.StateChangeReturn.FAILURE: self.__logger.error(f"{datetime.datetime.now()}: Could not stop pipeline")
             while True:
@@ -1096,6 +1096,13 @@ class WebRTCClient:
                 if self.__pipe.get_state(0)[1] is Gst.State.NULL: break
                 time.sleep(0.1)
             self.__pipe = None
+            self.__roundtrip_time = -1
+            self.__bitrate_effective = -1
+            self.__packet_loss = -1
+            self.__stats_cache.packet_loss = 0
+            self.__stats_cache.packets_sent = 0
+            self.__stats_cache.bytes_sent = 0
+            self.__stats_cache.timestamp = 0
             
     def __update_bit_rate(self, uuid: str, packet_loss_value: float) -> None:
         """
